@@ -1,10 +1,9 @@
 #include "socket_utils.h"
 
-#include <cmath>
 #include <cstdio>
-#include <random>
 
 #include "robot_runtime.h"
+#include "system_telemetry.h"
 
 void runTelemetrySender(const RobotOptions& options, RobotRuntime& runtime) {
     net::Socket server = net::listenOn(options.telemetry_port);
@@ -16,9 +15,8 @@ void runTelemetrySender(const RobotOptions& options, RobotRuntime& runtime) {
         return;
     }
 
-    // Preserve the existing simulator; these values do not come from Pi sensors.
-    std::mt19937 rng(1234);
-    std::uniform_real_distribution<float> noise(-0.4f, 0.4f);
+    const SystemTelemetrySource sensors;
+    std::printf("[tlm] system sensors; unavailable values are NaN; camera is applied PWM setpoint\n");
 
     while (runtime.running.load()) {
         net::Socket client;
@@ -33,22 +31,15 @@ void runTelemetrySender(const RobotOptions& options, RobotRuntime& runtime) {
             runtime.running.store(false);
             break;
         }
-        std::printf("[tlm] control connected: %s (SIMULATED telemetry)\n", peer.c_str());
+        std::printf("[tlm] control connected: %s\n", peer.c_str());
 
-        float t = 0.0f;
-        float battery = 100.0f;
         auto next = net::Clock::now();
         while (runtime.running.load()) {
-            proto::Telemetry telemetry{};
-            telemetry.cpu_temp = 48.0f + 6.0f * std::sin(t) + noise(rng);
-            battery = std::fmax(0.0f, battery - 0.02f);
-            telemetry.battery_level = std::fmax(0.0f, std::fmin(100.0f, battery + noise(rng) * 0.2f));
-            for (int i = 0; i < proto::LIDAR_POINTS; ++i) {
-                telemetry.points[i].angle = i * (360.0f / proto::LIDAR_POINTS);
-                telemetry.points[i].distance =
-                    2.5f + 1.5f * std::sin(t + i * 0.5f) + noise(rng) * 0.1f;
-                telemetry.points[i].intensity = 0.5f + 0.4f * std::cos(t * 0.7f + i);
-            }
+            proto::Telemetry telemetry = proto::unknownTelemetry();
+            const auto system = sensors.sample();
+            telemetry.cpu_temp = system.cpu_temp;
+            telemetry.battery_level = system.battery_level;
+            telemetry.camera = runtime.appliedCamera();
 
             const auto sent = net::sendExact(client.get(), &telemetry, sizeof(telemetry),
                 net::Clock::now() + std::chrono::seconds(1), runtime.running);
@@ -57,7 +48,6 @@ void runTelemetrySender(const RobotOptions& options, RobotRuntime& runtime) {
                     std::fprintf(stderr, "[tlm] could not send a complete frame within 1 second\n");
                 break;
             }
-            t += 0.05f;
             next += std::chrono::milliseconds(proto::TELEMETRY_PERIOD_MS);
             // A slow peer must not cause a burst of old samples when it resumes.
             if (next < net::Clock::now()) next = net::Clock::now();

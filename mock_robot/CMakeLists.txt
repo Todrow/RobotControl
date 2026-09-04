@@ -20,6 +20,7 @@ add_executable(mock_robot
     main.cpp
     command_listener.cpp
     telemetry_sender.cpp
+    system_telemetry.cpp
     video_sender.cpp
     drive_controller.cpp
     servo_controller.cpp

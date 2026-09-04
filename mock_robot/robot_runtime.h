@@ -30,6 +30,23 @@ struct RobotOptions {
 struct RobotRuntime {
     std::atomic<bool> running{true};
     std::atomic<bool> failed{false};
+
+    void setAppliedCamera(const proto::CameraState& camera) {
+        std::lock_guard<std::mutex> lock(camera_mutex_);
+        applied_camera_ = camera;
+    }
+    void clearAppliedCamera() {
+        setAppliedCamera({proto::UNKNOWN_TELEMETRY_VALUE, proto::UNKNOWN_TELEMETRY_VALUE});
+    }
+    proto::CameraState appliedCamera() const {
+        std::lock_guard<std::mutex> lock(camera_mutex_);
+        return applied_camera_;
+    }
+
+private:
+    mutable std::mutex camera_mutex_;
+    proto::CameraState applied_camera_{proto::UNKNOWN_TELEMETRY_VALUE,
+                                       proto::UNKNOWN_TELEMETRY_VALUE};
 };
 
 // With no explicit destination, video follows the active command connection.

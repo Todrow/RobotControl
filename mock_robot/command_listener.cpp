@@ -145,10 +145,12 @@ void runCommandListener(const RobotOptions& options, RobotRuntime& runtime, Vide
             // Apply each valid absolute camera position; the controller avoids
             // redundant PWM writes. Logging thresholds must not filter motion.
             if (!servos.apply(state.camera)) {
+                runtime.clearAppliedCamera();
                 runtime.failed.store(true);
                 runtime.running.store(false);
                 break;
             }
+            if (options.servos.enabled) runtime.setAppliedCamera(state.camera);
             // Forward every complete command, including repeats, as a UART frame.
             if (!drive.apply(state.drive_cmd)) {
                 runtime.failed.store(true);
@@ -172,6 +174,7 @@ void runCommandListener(const RobotOptions& options, RobotRuntime& runtime, Vide
         }
         // Also stop on malformed input, timeout, peer loss and server shutdown.
         // Attempt both releases even if either device reports an error.
+        runtime.clearAppliedCamera();
         const bool drive_stopped = drive.stop();
         const auto stopped_at = net::Clock::now();
         video_target.clearPeer();
@@ -191,6 +194,7 @@ void runCommandListener(const RobotOptions& options, RobotRuntime& runtime, Vide
         }
     }
     // Also release outputs if shutdown or an accept/UART error interrupts reverse.
+    runtime.clearAppliedCamera();
     const bool drive_stopped = drive.stop();
     const bool servos_released = servos.release();
     if (!drive_stopped || !servos_released) {
