@@ -1,0 +1,24 @@
+# ninja log v7
+55	949	8102290996132295	mock_robot-build/CMakeFiles/mock_robot.dir/servo_controller.cpp.obj	3c19f5cb6e04eebb
+49	987	8102290996072305	mock_robot-build/CMakeFiles/mock_robot.dir/drive_controller.cpp.obj	1e2d5176564d893d
+18	1530	8102291010233359	control_autogen/timestamp	c14592a72f3674d6
+18	1530	8102291010233359	control_autogen/mocs_compilation.cpp	c14592a72f3674d6
+18	1530	8102291010233359	C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/control_autogen/timestamp	c14592a72f3674d6
+18	1530	8102291010233359	C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/control_autogen/mocs_compilation.cpp	c14592a72f3674d6
+32	2466	8102290995902311	mock_robot-build/CMakeFiles/mock_robot.dir/command_listener.cpp.obj	66f39403dc26367b
+43	2579	8102290996012225	mock_robot-build/CMakeFiles/mock_robot.dir/video_sender.cpp.obj	c8ccd313afdb2c9a
+37	2756	8102290995952255	mock_robot-build/CMakeFiles/mock_robot.dir/telemetry_sender.cpp.obj	29795f06a8504e1f
+2756	3018	8102291023142445	CMakeFiles/control.dir/control/state/desired_state_slot.cpp.obj	99fff3022cfc0eb2
+2467	3147	8102291020255604	CMakeFiles/control.dir/control/net/command_sender.cpp.obj	21fc5088d08c4770
+28	3186	8102290995862213	mock_robot-build/CMakeFiles/mock_robot.dir/main.cpp.obj	c3e8c2cf513fa381
+3019	3475	8102291025768566	CMakeFiles/control.dir/control/input/input_controller.cpp.obj	f6c96da3c5c8e5b
+1546	3506	8102291011043265	CMakeFiles/control.dir/control/net/tcp_connection.cpp.obj	fd5cacc71da67133
+1553	3729	8102291011123269	CMakeFiles/control.dir/control/net/connection_manager.cpp.obj	b6867c2f8dd9fc1c
+3507	3743	8102291030648338	mock_robot.exe	44463792575f6383
+2579	4693	8102291021372481	CMakeFiles/control.dir/control/net/telemetry_receiver.cpp.obj	7a7121a4888ae761
+1534	4748	8102291010923308	CMakeFiles/control.dir/control_autogen/mocs_compilation.cpp.obj	828a625c6780c26d
+3148	5605	8102291027058641	CMakeFiles/control.dir/control/video/video_receiver.cpp.obj	79cb9a53bb4a5c8f
+3475	5627	8102291030328256	CMakeFiles/control.dir/control/ui/hud_overlay.cpp.obj	e1354515b6742a6d
+1541	5740	8102291010993235	CMakeFiles/control.dir/control/main.cpp.obj	5a4ab5b4618a6a22
+3186	6532	8102291027448506	CMakeFiles/control.dir/control/ui/main_window.cpp.obj	cc63ff787a593ef2
+6532	6995	8102291060906833	control.exe	70119a3872c7c09

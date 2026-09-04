@@ -43,6 +43,7 @@ struct Telemetry {
     float cpu_temp;
     float battery_level;
     LidarPoint points[LIDAR_POINTS];
+    CameraState camera;
 };
 #pragma pack(pop)
 
