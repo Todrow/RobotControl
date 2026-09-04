@@ -20,14 +20,14 @@ const uint32_t UART_BAUD = 115200;
 // Принято: колесо 1 (GPIO4) — правое, колесо 2 (GPIO5) — левое.
 const int ESC_RIGHT_PIN = 4;
 const int ESC_LEFT_PIN = 5;
-const int RIGHT_DIRECTION = -1;
-const int LEFT_DIRECTION = 1;
+const int RIGHT_DIRECTION = 1;
+const int LEFT_DIRECTION = -1;
 
 const int PWM_MIN = 1000;
 const int PWM_NEUTRAL = 1500;
 const int PWM_MAX = 2000;
 // 90% = отклонение на 50 мкс от нейтрали; это команда ESC, не замер RPM.
-// R:90%|L:90% даёт 1450/1550 мкс; остальные значения масштабируются линейно.
+// R:90%|L:90% даёт 1550/1450 мкс; остальные значения масштабируются линейно.
 const int PWM_REFERENCE_PERCENT = 90;
 const int PWM_REFERENCE_OFFSET = 50;
 const uint32_t COMMAND_TIMEOUT_MS = 500;

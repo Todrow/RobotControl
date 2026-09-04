@@ -8,6 +8,8 @@
  * Serial Monitor: 115200 бод, Newline или Both NL & CR.
  * Для USB на ESP32-C3 включите USB CDC On Boot = Enabled.
  * Команды: 50 (оба мотора), L:50 (левый), R:45 (правый).
+ * Прямой ввод импульса: LUS:1530 или RUS:1470, диапазон 1000..2000 мкс.
+ * В режиме мкс процент не задан: в статусе показывается manual.
  * Проценты можно писать с символом %: L:50%. Команда 0 = стоп обоих.
  * Диапазон -100..100: плюс = вперёд, минус = назад, 0 = стоп.
  * Примеры (левый, правый): (90, 90) вперёд; (-90, -90) назад;
@@ -31,8 +33,8 @@ static_assert(RIGHT_SPEED_PERCENT >= -100 && RIGHT_SPEED_PERCENT <= 100,
 // Подключение и масштаб команды совпадают с esp32_code.ino.
 constexpr int ESC_RIGHT_PIN = 4;
 constexpr int ESC_LEFT_PIN = 5;
-constexpr int RIGHT_DIRECTION = -1;
-constexpr int LEFT_DIRECTION = 1;
+constexpr int RIGHT_DIRECTION = 1;
+constexpr int LEFT_DIRECTION = -1;
 constexpr int PWM_MIN = 1000;
 constexpr int PWM_NEUTRAL = 1500;
 constexpr int PWM_MAX = 2000;
@@ -46,6 +48,8 @@ int leftPercent = LEFT_SPEED_PERCENT;
 int rightPercent = RIGHT_SPEED_PERCENT;
 int leftPulseUs = PWM_NEUTRAL;
 int rightPulseUs = PWM_NEUTRAL;
+bool leftManualUs = false;
+bool rightManualUs = false;
 char commandLine[32];
 size_t commandLength = 0;
 bool discardCommand = false;
@@ -53,22 +57,34 @@ uint32_t lastReportMs = 0;
 
 void printStatus() {
   Serial.print("L: ");
-  Serial.print(leftPercent);
-  Serial.print("% -> ");
+  if (leftManualUs) {
+    Serial.print("manual -> ");
+  } else {
+    Serial.print(leftPercent);
+    Serial.print("% -> ");
+  }
   Serial.print(leftPulseUs);
   Serial.print(" us | R: ");
-  Serial.print(rightPercent);
-  Serial.print("% -> ");
+  if (rightManualUs) {
+    Serial.print("manual -> ");
+  } else {
+    Serial.print(rightPercent);
+    Serial.print("% -> ");
+  }
   Serial.print(rightPulseUs);
   Serial.println(" us");
   lastReportMs = millis();
 }
 
 void applySpeeds() {
-  leftPulseUs = PWM_NEUTRAL + LEFT_DIRECTION * leftPercent *
-                PWM_REFERENCE_OFFSET / PWM_REFERENCE_PERCENT;
-  rightPulseUs = PWM_NEUTRAL + RIGHT_DIRECTION * rightPercent *
-                 PWM_REFERENCE_OFFSET / PWM_REFERENCE_PERCENT;
+  if (!leftManualUs) {
+    leftPulseUs = PWM_NEUTRAL + LEFT_DIRECTION * leftPercent *
+                  PWM_REFERENCE_OFFSET / PWM_REFERENCE_PERCENT;
+  }
+  if (!rightManualUs) {
+    rightPulseUs = PWM_NEUTRAL + RIGHT_DIRECTION * rightPercent *
+                   PWM_REFERENCE_OFFSET / PWM_REFERENCE_PERCENT;
+  }
   escLeft.writeMicroseconds(leftPulseUs);
   escRight.writeMicroseconds(rightPulseUs);
   printStatus();
@@ -77,9 +93,16 @@ void applySpeeds() {
 bool parseInput(const char *cursor) {
   while (*cursor == ' ') ++cursor;
   char motor = 'B';
+  bool manualUs = false;
   if (*cursor == 'L' || *cursor == 'l' || *cursor == 'R' || *cursor == 'r') {
     motor = (*cursor == 'L' || *cursor == 'l') ? 'L' : 'R';
     ++cursor;
+    if (*cursor == 'U' || *cursor == 'u') {
+      ++cursor;
+      if (*cursor != 'S' && *cursor != 's') return false;
+      ++cursor;
+      manualUs = true;
+    }
     if (*cursor++ != ':') return false;
   }
   while (*cursor == ' ') ++cursor;
@@ -92,13 +115,23 @@ bool parseInput(const char *cursor) {
   int value = 0;
   while (*cursor >= '0' && *cursor <= '9') {
     value = value * 10 + (*cursor++ - '0');
-    if (value > 100) return false;
+    if (value > (manualUs ? PWM_MAX : 100)) return false;
   }
-  if (*cursor == '%') ++cursor;
+  if (!manualUs && *cursor == '%') ++cursor;
   while (*cursor == ' ') ++cursor;
   if (*cursor != '\0') return false;
-  if (motor != 'R') leftPercent = sign * value;
-  if (motor != 'L') rightPercent = sign * value;
+  value *= sign;
+  if (manualUs && value < PWM_MIN) return false;
+  if (motor != 'R') {
+    leftManualUs = manualUs;
+    if (manualUs) leftPulseUs = value;
+    else leftPercent = value;
+  }
+  if (motor != 'L') {
+    rightManualUs = manualUs;
+    if (manualUs) rightPulseUs = value;
+    else rightPercent = value;
+  }
   applySpeeds();
   return true;
 }
@@ -110,7 +143,7 @@ void receiveCommand(char ch) {
     } else if (commandLength > 0) {
       commandLine[commandLength] = '\0';
       if (!parseInput(commandLine)) {
-        Serial.println("Ошибка: введите -100..100, L:50 или R:50.");
+        Serial.println("Ошибка: проценты -100..100 (50, L:50, R:50) или мкс 1000..2000 (LUS:1500, RUS:1500).");
       }
     }
     commandLength = 0;
@@ -140,6 +173,7 @@ void setup() {
   delay(ARMING_DELAY_MS);
 
   Serial.println("Команды + Enter: 50 = оба, L:50 = левый, R:45 = правый, 0 = стоп.");
+  Serial.println("Микросекунды: LUS:1530 = левый, RUS:1470 = правый (1000..2000). Нейтраль: 1500 мкс.");
   applySpeeds();
 }
 
