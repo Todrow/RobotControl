@@ -1,0 +1,153 @@
+#include "yaw_indicator.h"
+
+#include <QPainter>
+#include <QPolygonF>
+#include <QtMath>
+#include <algorithm>
+#include <cmath>
+
+namespace {
+constexpr int kSize = 168;
+constexpr int kFooter = 18;
+constexpr int kHeader = 20;
+
+// yaw travels -1..1 on the wire; the angle that maps to depends on the servo
+// and the mount, so the grid is labelled with this nominal half-range.
+constexpr double kYawRangeDeg = 90.0;
+
+constexpr float kEpsilon = 1e-4f;
+
+// 0 = forward (up), positive = clockwise, matching mouse-right = yaw up.
+QPointF dirAt(double deg) {
+    const double rad = qDegreesToRadians(deg);
+    return QPointF(std::sin(rad), -std::cos(rad));
+}
+
+QString formatDeg(double deg) {
+    return QString::asprintf("%+.0f", deg) + QChar(0x00B0);
+}
+}  // namespace
+
+YawIndicator::YawIndicator(QWidget* parent) : QWidget(parent) {
+    setFixedSize(kSize, kSize);
+    setAttribute(Qt::WA_TransparentForMouseEvents);
+    setFocusPolicy(Qt::NoFocus);
+}
+
+void YawIndicator::setDesiredYaw(float yaw) {
+    if (std::fabs(yaw - desired_) < kEpsilon) return;
+    desired_ = yaw;
+    update();
+}
+
+void YawIndicator::setActualYaw(float yaw) {
+    if (has_actual_ && std::fabs(yaw - actual_) < kEpsilon) return;
+    has_actual_ = true;
+    actual_ = yaw;
+    update();
+}
+
+void YawIndicator::clearActualYaw() {
+    if (!has_actual_) return;
+    has_actual_ = false;
+    update();
+}
+
+void YawIndicator::paintEvent(QPaintEvent*) {
+    QPainter p(this);
+    p.setRenderHint(QPainter::Antialiasing);
+    p.fillRect(rect(), QColor(0, 0, 0));
+    p.setBrush(QColor(24, 24, 26, 210));
+    p.setPen(QColor(70, 70, 74));
+    p.drawRoundedRect(QRectF(0.5, 0.5, width() - 1.0, height() - 1.0), 4, 4);
+
+    p.setFont(QFont(QStringLiteral("Consolas"), 8));
+    p.setPen(QColor(150, 150, 155));
+    p.drawText(QRect(10, 4, 60, 14), Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("YAW"));
+    p.setPen(QColor(105, 105, 112));
+    p.drawText(QRect(width() - 70, 4, 60, 14), Qt::AlignRight | Qt::AlignVCenter,
+               QChar(0x00B1) + QString::asprintf("%.0f", kYawRangeDeg) + QChar(0x00B0));
+
+    const QPointF c(width() / 2.0, (kHeader + (height() - kFooter)) / 2.0);
+    const double r = std::min(width() / 2.0 - 12.0, (height() - kFooter - kHeader) / 2.0 - 4.0);
+    const QRectF ring(c.x() - r, c.y() - r, 2 * r, 2 * r);
+
+    // Degree grid. Angles the turret cannot reach are drawn dimmer, and the
+    // reachable sector is outlined on the ring.
+    p.setBrush(Qt::NoBrush);
+    p.setPen(QPen(QColor(56, 56, 62), 1.0));
+    p.drawEllipse(ring);
+    p.setPen(QPen(QColor(92, 92, 100), 2.0));
+    p.drawArc(ring, static_cast<int>((90.0 + kYawRangeDeg) * 16),
+              static_cast<int>(-2.0 * kYawRangeDeg * 16));
+
+    for (int deg = -180; deg < 180; deg += 15) {
+        const bool major = deg % 45 == 0;
+        const QPointF d = dirAt(deg);
+        QColor tick = major ? QColor(120, 120, 128) : QColor(76, 76, 84);
+        if (std::abs(deg) > kYawRangeDeg) tick = tick.darker(165);
+        p.setPen(QPen(tick, major ? 1.4 : 1.0));
+        p.drawLine(c + d * (r - (major ? 9.0 : 5.0)), c + d * r);
+    }
+
+    p.setFont(QFont(QStringLiteral("Consolas"), 7));
+    for (int deg = -135; deg <= 180; deg += 45) {
+        const QPointF at = c + dirAt(deg) * (r - 19.0);
+        p.setPen(std::abs(deg) > kYawRangeDeg ? QColor(84, 84, 90) : QColor(142, 142, 150));
+        p.drawText(QRectF(at.x() - 16, at.y() - 7, 32, 14), Qt::AlignCenter,
+                   QString::number(deg));
+    }
+
+    // Chassis: fixed, always facing forward.
+    p.setPen(QPen(QColor(104, 104, 112), 1.0));
+    p.setBrush(QColor(44, 44, 50));
+    p.drawRoundedRect(QRectF(c.x() - 13, c.y() - 19, 26, 38), 4, 4);
+    p.setPen(Qt::NoPen);
+    p.setBrush(QColor(72, 72, 80));
+    for (int sx = -1; sx <= 1; sx += 2) {
+        for (int sy = -1; sy <= 1; sy += 2) {
+            p.drawRoundedRect(
+                QRectF(c.x() + sx * 13.0 - (sx > 0 ? 0.0 : 5.0), c.y() + sy * 10.0 - 5.5, 5, 11),
+                2, 2);
+        }
+    }
+    p.setBrush(QColor(122, 122, 132));
+    QPolygonF nose;
+    nose << QPointF(c.x(), c.y() - 25.5) << QPointF(c.x() - 4.5, c.y() - 20.0)
+         << QPointF(c.x() + 4.5, c.y() - 20.0);
+    p.drawPolygon(nose);
+
+    const double desired_deg = desired_ * kYawRangeDeg;
+    const double actual_deg = actual_ * kYawRangeDeg;
+
+    // Turret follows the reported angle; with no telemetry it sits at zero, greyed.
+    p.save();
+    p.translate(c);
+    p.rotate(has_actual_ ? actual_deg : 0.0);
+    const QColor turret = has_actual_ ? QColor(96, 172, 122) : QColor(78, 78, 86);
+    p.setPen(QPen(turret.darker(135), 1.0));
+    p.setBrush(QColor(54, 54, 60));
+    p.drawEllipse(QPointF(0, 0), 11, 11);
+    p.setPen(Qt::NoPen);
+    p.setBrush(turret);
+    p.drawRoundedRect(QRectF(-3.5, -22, 7, 16), 2, 2);
+    p.restore();
+
+    const double tip = r - 4.0;
+    p.setPen(QPen(QColor(224, 72, 72), 2.0, Qt::SolidLine, Qt::RoundCap));
+    p.drawLine(c + dirAt(desired_deg) * 13.0, c + dirAt(desired_deg) * tip);
+    if (has_actual_) {
+        p.setPen(QPen(QColor(80, 200, 120), 2.0, Qt::SolidLine, Qt::RoundCap));
+        p.drawLine(c + dirAt(actual_deg) * 13.0, c + dirAt(actual_deg) * tip);
+    }
+
+    p.setFont(QFont(QStringLiteral("Consolas"), 8));
+    const int fy = height() - kFooter - 2;
+    p.setPen(QColor(224, 72, 72));
+    p.drawText(QRect(10, fy, width() / 2 - 12, kFooter), Qt::AlignLeft | Qt::AlignVCenter,
+               QStringLiteral("CMD ") + formatDeg(desired_deg));
+    p.setPen(has_actual_ ? QColor(80, 200, 120) : QColor(110, 110, 115));
+    p.drawText(QRect(width() / 2, fy, width() / 2 - 10, kFooter), Qt::AlignRight | Qt::AlignVCenter,
+               QStringLiteral("ACT ") +
+                   (has_actual_ ? formatDeg(actual_deg) : QStringLiteral("--")));
+}

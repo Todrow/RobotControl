@@ -3,4 +3,5 @@
 #include "TKQ2SUD63T/moc_telemetry_receiver.cpp"
 #include "KNR4TIJSV7/moc_hud_overlay.cpp"
 #include "KNR4TIJSV7/moc_main_window.cpp"
+#include "KNR4TIJSV7/moc_yaw_indicator.cpp"
 #include "HK52O7V7MZ/moc_video_receiver.cpp"

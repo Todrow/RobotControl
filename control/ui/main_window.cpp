@@ -14,6 +14,7 @@
 #include <algorithm>
 
 #include "hud_overlay.h"
+#include "yaw_indicator.h"
 
 namespace {
 constexpr int kTelemetryStaleMs = 1000;
@@ -66,6 +67,10 @@ MainWindow::MainWindow(QWidget* parent)
     hud_ = new HudOverlay(this);
     hud_->setAttribute(Qt::WA_NativeWindow);
     hud_->show();
+    yaw_view_ = new YawIndicator(this);
+    yaw_view_->setAttribute(Qt::WA_NativeWindow);
+    yaw_view_->setDesiredYaw(slot_.get().camera.yaw);
+    yaw_view_->show();
 
     connect(&conn_, &ConnectionManager::commandStatusChanged, this, &MainWindow::onCommandStatus,
             Qt::QueuedConnection);
@@ -180,6 +185,12 @@ void MainWindow::layoutOverlays() {
         hud_->raise();
         hud_->update();
     }
+    if (yaw_view_) {
+        yaw_view_->move(area.right() - yaw_view_->width() - kMargin,
+                        area.bottom() - yaw_view_->height() - kMargin);
+        yaw_view_->raise();
+        yaw_view_->update();
+    }
 }
 
 void MainWindow::resizeEvent(QResizeEvent* event) {
@@ -203,6 +214,7 @@ void MainWindow::onConnectClicked() {
         arrivals_.clear();
         hud_->clearTelemetry();
         hud_->setLinkQuality(-1);
+        yaw_view_->clearActualYaw();
         connect_button_->setText(QStringLiteral("Connect"));
         return;
     }
@@ -227,6 +239,7 @@ void MainWindow::onTelemetry(proto::Telemetry telemetry) {
     if (arrivals_.size() > 2 * static_cast<size_t>(kQualityWindowMs / proto::TELEMETRY_PERIOD_MS))
         arrivals_.pop_front();
     hud_->setTelemetry(telemetry.cpu_temp, telemetry.battery_level);
+    yaw_view_->setActualYaw(telemetry.camera.yaw);
     updateQuality();
 }
 
@@ -243,6 +256,7 @@ void MainWindow::onTelemetryStatus(bool connected) {
         last_telemetry_ = -1;
         arrivals_.clear();
         hud_->clearTelemetry();
+        yaw_view_->clearActualYaw();
     }
     updateQuality();
 }
@@ -271,7 +285,11 @@ void MainWindow::updateQuality() {
 
 void MainWindow::tick() {
     const bool fresh = last_telemetry_ >= 0 && uptime_.elapsed() - last_telemetry_ < kTelemetryStaleMs;
-    if (!fresh) hud_->clearTelemetry();
+    if (!fresh) {
+        hud_->clearTelemetry();
+        yaw_view_->clearActualYaw();
+    }
+    yaw_view_->setDesiredYaw(slot_.get().camera.yaw);
     updateQuality();
 }
 
@@ -315,6 +333,13 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
     if (watched != video_widget_) return QMainWindow::eventFilter(watched, event);
 
     switch (event->type()) {
+        // The central widget only gets its real geometry from the layout pass
+        // that runs after showEvent. Everything except the connect bar is
+        // placed from area.right()/bottom(), so laying out against the
+        // pre-layout size pushes those overlays off the window entirely.
+        case QEvent::Resize:
+            layoutOverlays();
+            break;
         case QEvent::MouseMove:
             handleMouseMove(static_cast<QMouseEvent*>(event)->pos());
             return true;
@@ -350,6 +375,7 @@ void MainWindow::handleMouseMove(const QPoint& pos) {
     const QPoint delta = pos - center;
     if (delta.isNull()) return;
     input_.mouseDelta(delta.x(), delta.y());
+    yaw_view_->setDesiredYaw(slot_.get().camera.yaw);
     QCursor::setPos(video_widget_->mapToGlobal(center));
 }
 
