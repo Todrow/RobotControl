@@ -29,6 +29,7 @@ if sys.platform.startswith("linux"):
 
 ROOT = Path(__file__).resolve().parents[1]
 STOP = b"R:0%|L:0%\n"
+REVERSE = b"R:-20%|L:-20%\n"
 
 
 def command(direction, speed, pitch=0.0, yaw=0.0):
@@ -125,6 +126,67 @@ class DriveUartTests(unittest.TestCase):
         except ConnectionResetError:
             pass  # Closing a connection with unread input may send TCP RST.
 
+    def disconnect_while_moving(self):
+        client = self.connect()
+        client.sendall(command(1, 0.5))
+        self.expect_line(b"R:50%|L:50%\n")
+        client.close()
+        self.expect_line(STOP)
+        return time.monotonic()
+
+    def expect_reverse_after_pause(self, stopped_at):
+        self.expect_line(REVERSE, timeout=2)
+        reversing_at = time.monotonic()
+        self.assertGreaterEqual(reversing_at - stopped_at, 0.90, self.logs())
+        self.assertLess(reversing_at - stopped_at, 2.0, self.logs())
+        return reversing_at
+
+    def expect_recovery_sequence(self, stopped_at):
+        reversing_at = self.expect_reverse_after_pause(stopped_at)
+        # Repeated reverse frames keep the ESP32 watchdog supplied. The final
+        # neutral command must arrive after a short, bounded reverse pulse.
+        reverse_count = 1
+        deadline = reversing_at + 0.8
+        while True:
+            remaining = deadline - time.monotonic()
+            self.assertGreater(remaining, 0, "reverse did not stop\n" + self.logs())
+            line = self.read_line(timeout=remaining)
+            if line == STOP:
+                break
+            self.assertEqual(line, REVERSE, self.logs())
+            reverse_count += 1
+        self.assertGreaterEqual(time.monotonic() - reversing_at, 0.20, self.logs())
+        self.assertGreaterEqual(reverse_count, 2, self.logs())
+        self.assertIsNone(self.read_line(timeout=1.6), "recovery repeated while disconnected")
+
+    def keep_command_active(self, client, frame, expected, duration=1.5):
+        deadline = time.monotonic() + duration
+        while time.monotonic() < deadline:
+            client.sendall(frame)
+            self.expect_line(expected, timeout=0.5)
+            time.sleep(0.05)
+
+    def expect_stop_during_reverse(self):
+        # A heartbeat already queued before accept/shutdown may precede STOP.
+        # Require interruption before the normal 300 ms pulse would finish.
+        deadline = time.monotonic() + 0.2
+        while True:
+            remaining = deadline - time.monotonic()
+            self.assertGreater(remaining, 0, "reverse was not interrupted\n" + self.logs())
+            line = self.read_line(timeout=remaining)
+            if line == STOP:
+                return
+            self.assertEqual(line, REVERSE, self.logs())
+
+    def assert_only_stops_after_shutdown(self):
+        self.process.wait(timeout=3)
+        self.assertEqual(self.process.returncode, 0, self.logs())
+        while True:
+            line = self.read_line(timeout=0.1)
+            if line is None:
+                return
+            self.assertEqual(line, STOP, self.logs())
+
     def test_uart_is_raw_115200_8n1(self):
         settings = termios.tcgetattr(self.slave)
         self.assertEqual(settings[4:6], [termios.B115200, termios.B115200])
@@ -184,21 +246,49 @@ class DriveUartTests(unittest.TestCase):
         client.sendall(command(0, 0.7, 1.0, -1.0))
         self.expect_line(STOP)
 
-    def test_disconnect_stops_and_reconnect_resumes(self):
-        for _ in range(2):
-            client = self.connect()
-            client.sendall(command(1, 0.5))
-            self.expect_line(b"R:50%|L:50%\n")
-            client.close()
-            self.expect_line(STOP)
+    def test_disconnect_stops_reverses_once_and_stays_stopped(self):
+        self.expect_recovery_sequence(self.disconnect_while_moving())
+        # A fresh established session may later start its own single recovery.
+        self.expect_recovery_sequence(self.disconnect_while_moving())
 
-    def test_silent_client_timeout_stops(self):
+    def test_silent_client_timeout_stops_and_recovers_once(self):
         client = self.connect()
         client.sendall(command(1, 0.8))
         self.expect_line(b"R:80%|L:80%\n")
         # The listener has a 500 ms deadline; leave broad scheduling headroom.
         self.expect_line(STOP, timeout=2)
+        stopped_at = time.monotonic()
         self.assert_closed(client)
+        self.expect_recovery_sequence(stopped_at)
+
+    def test_reconnect_during_pause_cancels_reverse(self):
+        self.disconnect_while_moving()
+        client = self.connect()
+        # Keep receiving valid states beyond the old recovery deadline. A stale
+        # automatic command must never overwrite the reconnected controller.
+        self.keep_command_active(client, command(4, 0.4), b"R:-40%|L:40%\n")
+
+    def test_reconnect_during_reverse_stops_before_new_motion(self):
+        self.expect_reverse_after_pause(self.disconnect_while_moving())
+        client = self.connect()
+        self.expect_stop_during_reverse()
+        self.keep_command_active(client, command(1, 0.4), b"R:40%|L:40%\n")
+
+    def test_silent_reconnect_cancels_pending_reverse(self):
+        self.disconnect_while_moving()
+        client = self.connect()
+        # Accept alone cancels recovery. Without a first valid command this
+        # socket times out stopped and must not arm another reverse movement.
+        self.expect_line(STOP, timeout=1)
+        self.assert_closed(client)
+        self.assertIsNone(self.read_line(timeout=1.6), "silent reconnect armed recovery")
+
+    def test_startup_and_unproven_connection_never_reverse(self):
+        self.assertIsNone(self.read_line(timeout=1.6), "startup triggered motion")
+        client = self.connect()
+        self.expect_line(STOP, timeout=1)
+        self.assert_closed(client)
+        self.assertIsNone(self.read_line(timeout=1.6), "unproven client armed recovery")
 
     def test_partial_frame_does_not_extend_timeout(self):
         client = self.connect()
@@ -233,6 +323,7 @@ class DriveUartTests(unittest.TestCase):
                 self.expect_line(STOP)
                 self.assert_closed(client)
                 client.close()
+        self.assertIsNone(self.read_line(timeout=1.6), "invalid command armed recovery")
 
     def test_graceful_shutdown_stops_active_wheels(self):
         client = self.connect()
@@ -242,6 +333,17 @@ class DriveUartTests(unittest.TestCase):
         self.expect_line(STOP)
         self.process.wait(timeout=3)
         self.assertEqual(self.process.returncode, 0, self.logs())
+
+    def test_shutdown_during_pause_cancels_reverse(self):
+        self.disconnect_while_moving()
+        self.process.send_signal(signal.SIGTERM)
+        self.assert_only_stops_after_shutdown()
+
+    def test_shutdown_during_reverse_stops_and_does_not_restart(self):
+        self.expect_reverse_after_pause(self.disconnect_while_moving())
+        self.process.send_signal(signal.SIGTERM)
+        self.expect_stop_during_reverse()
+        self.assert_only_stops_after_shutdown()
 
     def test_missing_uart_fails_startup(self):
         missing = Path(self.build.name) / "missing-uart"
