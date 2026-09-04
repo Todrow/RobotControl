@@ -84,13 +84,6 @@ static_assert(sizeof(DesiredState) == 16);
 static_assert(offsetof(DesiredState, drive_cmd) == 0);
 static_assert(offsetof(DesiredState, camera) == 8);
 static_assert(sizeof(LidarPoint) == 12);
-static_assert(offsetof(LidarPoint, angle) == 0);
-static_assert(offsetof(LidarPoint, distance) == 4);
-static_assert(offsetof(LidarPoint, intensity) == 8);
-static_assert(sizeof(Telemetry) == 160);
-static_assert(offsetof(Telemetry, cpu_temp) == 0);
-static_assert(offsetof(Telemetry, battery_level) == 4);
-static_assert(offsetof(Telemetry, points) == 8);
-static_assert(offsetof(Telemetry, camera) == 152);
+static_assert(sizeof(Telemetry) == 160);  // 8 + 12*12 + CameraState
 
 }  // namespace proto

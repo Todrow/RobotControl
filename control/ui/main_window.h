@@ -10,6 +10,7 @@
 #include "../video/video_receiver.h"
 
 class HudOverlay;
+class YawIndicator;
 class QDial;
 class QLabel;
 class QLineEdit;
@@ -61,6 +62,7 @@ private:
     QDial* power_dial_ = nullptr;
     QLabel* power_label_ = nullptr;
     HudOverlay* hud_ = nullptr;
+    YawIndicator* yaw_view_ = nullptr;
     QLineEdit* host_edit_ = nullptr;
     QSpinBox* command_port_ = nullptr;
     QSpinBox* telemetry_port_ = nullptr;
