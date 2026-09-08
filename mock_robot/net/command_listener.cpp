@@ -1,11 +1,11 @@
-#include "socket_utils.h"
+#include "util/socket_utils.h"
 
 #include <cmath>
 #include <cstdio>
 
 #include "robot_runtime.h"
-#include "drive_controller.h"
-#include "servo_controller.h"
+#include "actuators/drive_controller.h"
+#include "actuators/servo_controller.h"
 
 namespace {
 

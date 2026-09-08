@@ -59,8 +59,15 @@ bool VideoReceiver::start(quint16 port, WId window) {
     if (err) g_error_free(err);
 
     sink_ = gst_bin_get_by_name(GST_BIN(pipeline_), "vsink");
-    if (sink_ && GST_IS_VIDEO_OVERLAY(sink_))
-        gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(sink_), window_);
+    if (sink_) {
+        // Scale to fit: the picture grows until one side meets the window edge,
+        // keeping its aspect ratio, and is centred over the rest. This is the
+        // sink default, but the pipeline picks between several sinks, so pin it.
+        if (g_object_class_find_property(G_OBJECT_GET_CLASS(sink_), "force-aspect-ratio"))
+            g_object_set(sink_, "force-aspect-ratio", TRUE, nullptr);
+        if (GST_IS_VIDEO_OVERLAY(sink_))
+            gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(sink_), window_);
+    }
 
     GstBus* bus = gst_element_get_bus(pipeline_);
     gst_bus_set_sync_handler(bus, &VideoReceiver::busSync, this, nullptr);

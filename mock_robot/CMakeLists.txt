@@ -18,13 +18,18 @@ endif()
 
 add_executable(mock_robot
     main.cpp
-    command_listener.cpp
-    telemetry_sender.cpp
-    video_sender.cpp
-    drive_controller.cpp
-    servo_controller.cpp
+    net/command_listener.cpp
+    net/telemetry_sender.cpp
+    net/video_sender.cpp
+    actuators/drive_controller.cpp
+    actuators/servo_controller.cpp
 )
-target_include_directories(mock_robot PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../common")
+# mock_robot/ on the include path: sources say "net/...", "actuators/...",
+# "util/..." instead of counting ../ hops. tests/test_drive_uart.py passes the
+# same -I, so the harness compiles the same sources unchanged.
+target_include_directories(mock_robot PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../common")
 target_link_libraries(mock_robot PRIVATE Threads::Threads gstreamer)
 if(WIN32)
     target_compile_definitions(mock_robot PRIVATE NOMINMAX)

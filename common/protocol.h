@@ -54,6 +54,6 @@ static_assert(sizeof(DriveCommand) == 8);
 static_assert(sizeof(CameraState) == 8);
 static_assert(sizeof(DesiredState) == 16);
 static_assert(sizeof(LidarPoint) == 12);
-static_assert(sizeof(Telemetry) == 160);  // 8 + 12*12 + CameraState
+static_assert(sizeof(Telemetry) == 160);  // 8 + 12*12 + CameraState(8)
 
 }  // namespace proto

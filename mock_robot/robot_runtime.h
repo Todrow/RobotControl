@@ -7,8 +7,8 @@
 #include <utility>
 
 #include "protocol.h"
-#include "drive_config.h"
-#include "servo_config.h"
+#include "actuators/drive_config.h"
+#include "actuators/servo_config.h"
 
 enum class VideoSource { Camera, Test, Disabled };
 

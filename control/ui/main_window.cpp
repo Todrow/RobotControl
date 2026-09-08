@@ -193,10 +193,21 @@ void MainWindow::layoutOverlays() {
     }
 }
 
+// GstVideoOverlay's render rectangle is in native window pixels, but Qt reports
+// widget sizes in logical ones. On a scaled display the two differ, and passing
+// the logical size lays the picture out into a fraction of the window, leaving
+// dead space along the right and bottom edges.
+void MainWindow::updateVideoRect() {
+    if (!video_widget_) return;
+    const qreal dpr = video_widget_->devicePixelRatioF();
+    video_.setRenderRect(qRound(video_widget_->width() * dpr),
+                         qRound(video_widget_->height() * dpr));
+}
+
 void MainWindow::resizeEvent(QResizeEvent* event) {
     QMainWindow::resizeEvent(event);
     layoutOverlays();
-    video_.setRenderRect(video_widget_->width(), video_widget_->height());
+    updateVideoRect();
 }
 
 void MainWindow::showEvent(QShowEvent* event) {
@@ -222,7 +233,7 @@ void MainWindow::onConnectClicked() {
     conn_.start(host_edit_->text().trimmed(), static_cast<uint16_t>(command_port_->value()),
                 static_cast<uint16_t>(telemetry_port_->value()));
     video_.start(static_cast<quint16>(video_port_->value()), video_widget_->winId());
-    video_.setRenderRect(video_widget_->width(), video_widget_->height());
+    updateVideoRect();
     connected_at_ = uptime_.elapsed();
     arrivals_.clear();
     connect_button_->setText(QStringLiteral("Disconnect"));

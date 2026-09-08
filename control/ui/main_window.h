@@ -46,6 +46,7 @@ private:
     void buildConnectBar();
     void buildPowerPanel();
     void layoutOverlays();
+    void updateVideoRect();
     void handleKey(QKeyEvent* event, bool pressed);
     void handleMouseMove(const QPoint& pos);
     void setMouseCaptured(bool captured);
