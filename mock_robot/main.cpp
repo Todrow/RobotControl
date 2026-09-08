@@ -3,12 +3,16 @@
 #include <charconv>
 #include <csignal>
 #include <cstdio>
+#include <cstdlib>
 #include <exception>
+#include <filesystem>
+#include <memory>
 #include <string>
 #include <thread>
 
 #include <gst/gst.h>
 
+#include "logging/logger.h"
 #include "robot_runtime.h"
 
 namespace {
@@ -18,6 +22,16 @@ volatile std::sig_atomic_t stop_requested = 0;
 void requestStop(int) {
     // Signal handlers must not lock, log, or call GStreamer.
     stop_requested = 1;
+}
+
+std::filesystem::path logDirectory() {
+#ifdef _WIN32
+    const char* home = std::getenv("USERPROFILE");
+#else
+    const char* home = std::getenv("HOME");
+#endif
+    const std::filesystem::path base = home ? std::filesystem::path(home) : std::filesystem::path(".");
+    return base / "Documents" / "RobotControl";
 }
 
 void printUsage(const char* executable) {
@@ -244,6 +258,7 @@ int main(int argc, char* argv[]) {
             return 0;
         }
     }
+
 #ifdef _WIN32
     WSADATA wsa{};
     const int startup_error = WSAStartup(MAKEWORD(2, 2), &wsa);
@@ -272,6 +287,18 @@ int main(int argc, char* argv[]) {
     std::signal(SIGINT, requestStop);
     std::signal(SIGTERM, requestStop);
 
+    std::unique_ptr<Logger> logger;
+    try {
+        const std::filesystem::path log_dir = logDirectory();
+        std::filesystem::create_directories(log_dir);
+        const std::filesystem::path log_path = log_dir / "mock_robot.log";
+        logger = std::make_unique<Logger>(log_path.string());
+        logger->info("mock_robot starting: cmd=", options.command_port,
+                     " tlm=", options.telemetry_port, " video=", options.video_port);
+    } catch (const std::exception& error) {
+        std::fprintf(stderr, "Logger initialization failed: %s\n", error.what());
+    }
+
     RobotRuntime runtime;
     VideoTarget video_target(options.video_host);
     std::printf("mock_robot: cmd=%u tlm=%u video=%u (Ctrl+C to quit)\n",
@@ -285,6 +312,10 @@ int main(int argc, char* argv[]) {
     std::printf("Drive UART: %s. Camera servos: %s. Telemetry: system sensors / NaN if unavailable.\n",
                 options.drive_uart.enabled ? "ENABLED" : "disabled (use --drive-uart)",
                 options.servos.enabled ? "ENABLED" : "disabled (use --servos)");
+    if (logger) {
+        logger->info("Drive UART: ", options.drive_uart.enabled ? "ENABLED" : "disabled",
+                     ". Camera servos: ", options.servos.enabled ? "ENABLED" : "disabled");
+    }
 
     std::thread commands;
     std::thread telemetry;
