@@ -86,8 +86,10 @@ TcpConnection::Result TcpConnection::sendAll(const void* data, size_t len) {
             continue;
         }
         if (WSAGetLastError() == WSAETIMEDOUT) {
-            if (sent == 0) return Result::Timeout;
-            continue;  // partially sent: the peer is just slow, finish the struct
+            // A partial frame cannot be resumed by the next sendAll call.
+            // Reconnect to restore the stream's frame boundary.
+            if (sent != 0) closeLocked();
+            return Result::Timeout;
         }
         closeLocked();
         return Result::Error;
@@ -112,8 +114,10 @@ TcpConnection::Result TcpConnection::recvAll(void* data, size_t len) {
             return Result::Error;
         }
         if (WSAGetLastError() == WSAETIMEDOUT) {
-            if (got == 0) return Result::Timeout;
-            continue;  // mid-struct: the rest is still on its way
+            // The caller discards this partial frame on timeout.
+            // Reconnect to restore the stream's frame boundary.
+            if (got != 0) closeLocked();
+            return Result::Timeout;
         }
         closeLocked();
         return Result::Error;

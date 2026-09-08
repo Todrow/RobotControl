@@ -18,6 +18,7 @@ endif()
 
 add_executable(mock_robot
     main.cpp
+    system_telemetry.cpp
     net/command_listener.cpp
     net/telemetry_sender.cpp
     net/video_sender.cpp

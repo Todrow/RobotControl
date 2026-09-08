@@ -1,8 +1,8 @@
 /*
  * ESP32-C3 Super Mini, Arduino IDE, библиотека ESP32Servo.
- * UART1: RX = GPIO9, TX = GPIO10, 115200 бод, 8N1.
- * Подключение: TX отправителя -> GPIO9, общая GND, уровни 3.3 В.
- * GPIO9 также задаёт режим загрузки: при сбросе он должен быть HIGH.
+ * UART1: RX = GPIO20, TX = GPIO21, 115200 бод, 8N1.
+ * Подключение: TX отправителя -> GPIO20, общая GND, уровни 3.3 В.
+ * Отладочные сообщения через USB при USB CDC On Boot = Enabled.
  *
  * Команда: R:100%|L:50%\n (LF обязателен; CRLF тоже допустим).
  * Целые проценты: -100..100; плюс = вперёд, минус = назад, 0 = стоп.
@@ -13,21 +13,21 @@
 #include <Arduino.h>
 #include <ESP32Servo.h>
 
-const int UART_RX_PIN = 9;
-const int UART_TX_PIN = 10;
+const int UART_RX_PIN = 20;
+const int UART_TX_PIN = 21;
 const uint32_t UART_BAUD = 115200;
 
 // Принято: колесо 1 (GPIO4) — правое, колесо 2 (GPIO5) — левое.
 const int ESC_RIGHT_PIN = 4;
 const int ESC_LEFT_PIN = 5;
-const int RIGHT_DIRECTION = -1;
-const int LEFT_DIRECTION = 1;
+const int RIGHT_DIRECTION = 1;
+const int LEFT_DIRECTION = -1;
 
 const int PWM_MIN = 1000;
 const int PWM_NEUTRAL = 1500;
 const int PWM_MAX = 2000;
 // 90% = отклонение на 50 мкс от нейтрали; это команда ESC, не замер RPM.
-// R:90%|L:90% даёт 1450/1550 мкс; остальные значения масштабируются линейно.
+// R:90%|L:90% даёт 1550/1450 мкс; остальные значения масштабируются линейно.
 const int PWM_REFERENCE_PERCENT = 90;
 const int PWM_REFERENCE_OFFSET = 50;
 const uint32_t COMMAND_TIMEOUT_MS = 500;
@@ -116,13 +116,18 @@ void setup() {
   escLeft.attach(ESC_LEFT_PIN, PWM_MIN, PWM_MAX);
   stopMotors();
 
+  // Без USB CDC объект Serial использует UART0 на тех же GPIO20/21.
+#if defined(ARDUINO_USB_CDC_ON_BOOT) && ARDUINO_USB_CDC_ON_BOOT
   Serial.begin(115200);
   Serial.println("Инициализация ESC в нейтрали, жду 3 секунды...");
+#endif
   delay(3000);
 
   // Начинаем приём после инициализации ESC, без накопления старых команд.
   Serial1.begin(UART_BAUD, SERIAL_8N1, UART_RX_PIN, UART_TX_PIN);
-  Serial.println("Готов: UART RX=9, TX=10. Формат: R:90%|L:90% + LF");
+#if defined(ARDUINO_USB_CDC_ON_BOOT) && ARDUINO_USB_CDC_ON_BOOT
+  Serial.println("Готов: UART RX=20, TX=21. Формат: R:90%|L:90% + LF");
+#endif
 }
 
 void loop() {

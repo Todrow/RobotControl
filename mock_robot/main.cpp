@@ -24,7 +24,7 @@ void printUsage(const char* executable) {
     std::printf(
         "Usage: %s [options]\n"
         "  --command-port PORT    TCP command listener (default 5001)\n"
-        "  --telemetry-port PORT  TCP simulated telemetry listener (default 5002)\n"
+        "  --telemetry-port PORT  TCP system telemetry listener (default 5002)\n"
         "  --video-port PORT      RTP/H264 UDP destination port (default 5003)\n"
         "  --video-host IPV4      Fixed Windows receiver; default: active command peer\n"
         "  --video-source SOURCE camera | test | none (default camera)\n"
@@ -53,7 +53,8 @@ void printUsage(const char* executable) {
         "Signed power: -100..100; LEFT/RIGHT pivot in place. UART: 8N1, no flow control.\n"
         "Camera servos require --servos and pwm-2chan setup.\n"
         "Servo pulse limits: 500 <= min < center < max <= 2500 microseconds; 50 Hz.\n"
-        "Telemetry is simulated. Camera: rpicam-vid on Raspberry Pi; ksvideosrc on Windows.\n",
+        "Telemetry: Linux CPU/battery sensors, applied PWM camera setpoint; NaN if unavailable.\n"
+        "Camera: rpicam-vid on Raspberry Pi; ksvideosrc on Windows.\n",
         executable);
 }
 
@@ -245,7 +246,7 @@ int main(int argc, char* argv[]) {
                 static_cast<unsigned>(options.command_port),
                 static_cast<unsigned>(options.telemetry_port),
                 static_cast<unsigned>(options.video_port));
-    std::printf("Drive UART: %s. Camera servos: %s. Telemetry: SIMULATED.\n",
+    std::printf("Drive UART: %s. Camera servos: %s. Telemetry: system sensors / NaN if unavailable.\n",
                 options.drive_uart.enabled ? "ENABLED" : "disabled (use --drive-uart)",
                 options.servos.enabled ? "ENABLED" : "disabled (use --servos)");
 

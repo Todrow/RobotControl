@@ -1,6 +1,7 @@
 #include "hud_overlay.h"
 
 #include <QPainter>
+#include <cmath>
 
 namespace {
 constexpr int kWidth = 232;
@@ -67,9 +68,11 @@ void HudOverlay::paintEvent(QPaintEvent*) {
 
     const QColor white(228, 228, 232);
     row(0, QStringLiteral("CPU"),
-        has_telemetry_ ? QString::asprintf("%.1f C", cpu_temp_) : dash, white);
+        has_telemetry_ && std::isfinite(cpu_temp_)
+            ? QString::asprintf("%.1f C", cpu_temp_) : dash, white);
     row(1, QStringLiteral("BATTERY"),
-        has_telemetry_ ? QString::asprintf("%.0f %%", battery_level_) : dash, white);
+        has_telemetry_ && std::isfinite(battery_level_)
+            ? QString::asprintf("%.0f %%", battery_level_) : dash, white);
     row(2, QStringLiteral("QUALITY"),
         quality_ >= 0 ? QString::asprintf("%d %%", quality_) : dash, qualityColor(quality_));
 
