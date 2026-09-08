@@ -1,4 +1,4 @@
-#include "util/socket_utils.h"
+#include "utils/socket_utils.h"
 
 #include <charconv>
 #include <csignal>
@@ -36,6 +36,11 @@ void printUsage(const char* executable) {
         "  --drive-uart          Enable Linux UART wheel commands to ESP32\n"
         "  --drive-uart-device P UART device (default /dev/serial0)\n"
         "  --drive-uart-baud N   9600|19200|38400|57600|115200|230400 (default 115200)\n"
+        "  --lidar-source SOURCE sim | none (default sim: placeholder distances)\n"
+        "  --lidar-period MS     Sector publish period, 10..1000 (default 100)\n"
+        "  --lidar-max-age MS    Samples older than this read as Unknown (default 500)\n"
+        "  --obstacle-red MM     Red below this distance, 10..10000 (default 300)\n"
+        "  --obstacle-yellow MM  Yellow below this distance, 10..10000 (default 800)\n"
         "  --servos              Enable Linux hardware PWM camera servos\n"
         "  --servo-pwm-chip PATH  /sys/class/pwm/pwmchipN; default: auto-detect Pi 4 PWM0\n"
         "  --pitch-channel N     PWM channel 0 or 1 (default 0: BCM12, physical pin 32)\n"
@@ -52,6 +57,9 @@ void printUsage(const char* executable) {
         "Wheel UART requires --drive-uart: R:<percent>%%|L:<percent>%% followed by LF.\n"
         "Signed power: -100..100; LEFT/RIGHT pivot in place. UART: 8N1, no flow control.\n"
         "Camera servos require --servos and pwm-2chan setup.\n"
+        "Lidar sectors: forward, forward-right, back-right, back, back-left, forward-left.\n"
+        "No real lidar driver yet: --lidar-source sim publishes placeholder distances,\n"
+        "none leaves every sector Unknown. Verdicts are reported only, never enforced.\n"
         "Servo pulse limits: 500 <= min < center < max <= 2500 microseconds; 50 Hz.\n"
         "Telemetry: Linux CPU/battery sensors, applied PWM camera setpoint; NaN if unavailable.\n"
         "Camera: rpicam-vid on Raspberry Pi; ksvideosrc on Windows.\n",
@@ -110,6 +118,22 @@ bool parseOptions(int argc, char* argv[], RobotOptions& options) {
                 std::fprintf(stderr, "--video-source must be camera, test or none\n");
                 return false;
             }
+        } else if (name == "--lidar-source") {
+            if (value == "sim") options.lidar.source = LidarSource::Simulated;
+            else if (value == "none") options.lidar.source = LidarSource::Disabled;
+            else {
+                std::fprintf(stderr, "--lidar-source must be sim or none\n");
+                return false;
+            }
+        } else if (name == "--lidar-period") {
+            if (!integerOption(name, value, 10, 1000, options.lidar.period_ms)) return false;
+        } else if (name == "--lidar-max-age") {
+            if (!integerOption(name, value, 10, 10000, options.lidar.max_age_ms)) return false;
+        } else if (name == "--obstacle-red" || name == "--obstacle-yellow") {
+            if (!integerOption(name, value, 10, 10000, number)) return false;
+            auto& threshold = name == "--obstacle-red" ? options.lidar.thresholds.red_mm
+                                                       : options.lidar.thresholds.yellow_mm;
+            threshold = static_cast<float>(number);
         } else if (name == "--camera") {
             if (!integerOption(name, value, 0, 255, options.camera_index)) return false;
         } else if (name == "--width") {
@@ -167,6 +191,12 @@ bool parseOptions(int argc, char* argv[], RobotOptions& options) {
     }
     if (!validServoAxis(options.servos.pitch) || !validServoAxis(options.servos.yaw)) {
         std::fprintf(stderr, "Each servo needs 500 <= min-us < center-us < max-us <= 2500\n");
+        return false;
+    }
+    if (!validLidarOptions(options.lidar)) {
+        std::fprintf(stderr,
+                     "Lidar needs 0 < --obstacle-red < --obstacle-yellow and "
+                     "--lidar-max-age >= --lidar-period\n");
         return false;
     }
     if (options.servos.pitch.channel == options.servos.yaw.channel) {
@@ -246,6 +276,8 @@ int main(int argc, char* argv[]) {
                 static_cast<unsigned>(options.command_port),
                 static_cast<unsigned>(options.telemetry_port),
                 static_cast<unsigned>(options.video_port));
+    std::printf("Lidar: %s. PLACEHOLDER distances; verdicts are reported, never enforced.\n",
+                options.lidar.source == LidarSource::Simulated ? "simulated" : "disabled");
     std::printf("Drive UART: %s. Camera servos: %s. Telemetry: system sensors / NaN if unavailable.\n",
                 options.drive_uart.enabled ? "ENABLED" : "disabled (use --drive-uart)",
                 options.servos.enabled ? "ENABLED" : "disabled (use --servos)");
@@ -253,6 +285,7 @@ int main(int argc, char* argv[]) {
     std::thread commands;
     std::thread telemetry;
     std::thread video;
+    std::thread lidar;
     try {
         commands = std::thread([&] {
             runSafely("cmd", runtime, [&] { runCommandListener(options, runtime, video_target); });
@@ -262,6 +295,9 @@ int main(int argc, char* argv[]) {
         });
         video = std::thread([&] {
             runSafely("video", runtime, [&] { runVideoSender(options, runtime, video_target); });
+        });
+        lidar = std::thread([&] {
+            runSafely("lidar", runtime, [&] { runLidarReader(options, runtime); });
         });
         while (runtime.running.load() && !stop_requested)
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -273,6 +309,7 @@ int main(int argc, char* argv[]) {
     if (commands.joinable()) commands.join();
     if (telemetry.joinable()) telemetry.join();
     if (video.joinable()) video.join();
+    if (lidar.joinable()) lidar.join();
 
     gst_deinit();
 #ifdef _WIN32

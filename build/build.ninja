@@ -306,6 +306,16 @@ build mock_robot-build/CMakeFiles/mock_robot.dir/net/video_sender.cpp.obj: CXX_C
   OBJECT_FILE_DIR = mock_robot-build\CMakeFiles\mock_robot.dir\net
   TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
 
+build mock_robot-build/CMakeFiles/mock_robot.dir/lidar/lidar_reader.cpp.obj: CXX_COMPILER__mock_robot_unscanned_Release C$:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/lidar/lidar_reader.cpp || cmake_object_order_depends_target_mock_robot
+  CONFIG = Release
+  DEFINES = -DNOMINMAX
+  DEP_FILE = mock_robot-build\CMakeFiles\mock_robot.dir\lidar\lidar_reader.cpp.obj.d
+  FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic
+  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../common -isystem C:/msys64/ucrt64/bin/../include/gstreamer-1.0 -isystem C:/msys64/ucrt64/bin/../include/glib-2.0 -isystem C:/msys64/ucrt64/bin/../lib/glib-2.0/include -isystem C:/msys64/ucrt64/bin/../include/orc-0.4
+  OBJECT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
+  OBJECT_FILE_DIR = mock_robot-build\CMakeFiles\mock_robot.dir\lidar
+  TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
+
 build mock_robot-build/CMakeFiles/mock_robot.dir/actuators/drive_controller.cpp.obj: CXX_COMPILER__mock_robot_unscanned_Release C$:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/actuators/drive_controller.cpp || cmake_object_order_depends_target_mock_robot
   CONFIG = Release
   DEFINES = -DNOMINMAX
@@ -334,7 +344,7 @@ build mock_robot-build/CMakeFiles/mock_robot.dir/actuators/servo_controller.cpp.
 #############################################
 # Link the executable mock_robot.exe
 
-build mock_robot.exe: CXX_EXECUTABLE_LINKER__mock_robot_Release mock_robot-build/CMakeFiles/mock_robot.dir/main.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/system_telemetry.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/net/command_listener.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/net/telemetry_sender.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/net/video_sender.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/actuators/drive_controller.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/actuators/servo_controller.cpp.obj | C$:/msys64/ucrt64/lib/libgstvideo-1.0.dll.a C$:/msys64/ucrt64/lib/libgstbase-1.0.dll.a C$:/msys64/ucrt64/lib/libgstreamer-1.0.dll.a C$:/msys64/ucrt64/lib/libgobject-2.0.dll.a C$:/msys64/ucrt64/lib/libglib-2.0.dll.a C$:/msys64/ucrt64/lib/libintl.dll.a
+build mock_robot.exe: CXX_EXECUTABLE_LINKER__mock_robot_Release mock_robot-build/CMakeFiles/mock_robot.dir/main.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/system_telemetry.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/net/command_listener.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/net/telemetry_sender.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/net/video_sender.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/lidar/lidar_reader.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/actuators/drive_controller.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/actuators/servo_controller.cpp.obj | C$:/msys64/ucrt64/lib/libgstvideo-1.0.dll.a C$:/msys64/ucrt64/lib/libgstbase-1.0.dll.a C$:/msys64/ucrt64/lib/libgstreamer-1.0.dll.a C$:/msys64/ucrt64/lib/libgobject-2.0.dll.a C$:/msys64/ucrt64/lib/libglib-2.0.dll.a C$:/msys64/ucrt64/lib/libintl.dll.a
   CONFIG = Release
   FLAGS = -O3 -DNDEBUG
   LINK_LIBRARIES = -lws2_32  C:/msys64/ucrt64/lib/libgstvideo-1.0.dll.a  C:/msys64/ucrt64/lib/libgstbase-1.0.dll.a  C:/msys64/ucrt64/lib/libgstreamer-1.0.dll.a  C:/msys64/ucrt64/lib/libgobject-2.0.dll.a  C:/msys64/ucrt64/lib/libglib-2.0.dll.a  C:/msys64/ucrt64/lib/libintl.dll.a  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32

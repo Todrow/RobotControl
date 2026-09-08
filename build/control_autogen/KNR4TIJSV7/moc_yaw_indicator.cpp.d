@@ -1,5 +1,6 @@
 C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/control_autogen/KNR4TIJSV7/moc_yaw_indicator.cpp: C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/control/ui/yaw_indicator.h \
   C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/control_autogen/moc_predefs.h \
+  C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/common/protocol.h \
   C:/msys64/ucrt64/include/_mingw.h \
   C:/msys64/ucrt64/include/_mingw_mac.h \
   C:/msys64/ucrt64/include/_mingw_off_t.h \

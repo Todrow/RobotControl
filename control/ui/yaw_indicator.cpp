@@ -1,6 +1,7 @@
 #include "yaw_indicator.h"
 
 #include <QPainter>
+#include <QPainterPath>
 #include <QPolygonF>
 #include <QtMath>
 #include <algorithm>
@@ -23,12 +24,50 @@ QPointF dirAt(double deg) {
     return QPointF(std::sin(rad), -std::cos(rad));
 }
 
+// Colour and opacity together, so an unrecognised byte cannot end up painted
+// solid like a real verdict. That happens when the peer was built from a
+// different protocol.h: the frames desynchronise and arbitrary bytes land in
+// this field. A value we cannot interpret is not a reading, so it is drawn
+// exactly like Unknown.
+struct SectorPaint {
+    QColor color;
+    int alpha;
+};
+
+SectorPaint sectorPaint(proto::SectorStatus status) {
+    switch (status) {
+        case proto::SectorStatus::Green:  return {QColor(58, 176, 100), 165};
+        case proto::SectorStatus::Yellow: return {QColor(224, 176, 56), 165};
+        case proto::SectorStatus::Red:    return {QColor(226, 68, 68), 165};
+        case proto::SectorStatus::Unknown: break;
+    }
+    return {QColor(78, 78, 86), 70};
+}
+
+// One annulus segment. Angles here use this widget's convention (0 = up,
+// clockwise positive), while Qt's arcs start at 3 o'clock and run
+// counter-clockwise, hence the flip.
+QPainterPath sectorWedge(const QPointF& c, double inner, double outer, double centre_deg,
+                         double half_width_deg) {
+    const QRectF outer_box(c.x() - outer, c.y() - outer, 2 * outer, 2 * outer);
+    const QRectF inner_box(c.x() - inner, c.y() - inner, 2 * inner, 2 * inner);
+    const double start = 90.0 - (centre_deg - half_width_deg);
+    const double span = -2.0 * half_width_deg;
+    QPainterPath path;
+    path.arcMoveTo(outer_box, start);
+    path.arcTo(outer_box, start, span);
+    path.arcTo(inner_box, start + span, -span);
+    path.closeSubpath();
+    return path;
+}
+
 QString formatDeg(double deg) {
     return QString::asprintf("%+.0f", deg) + QChar(0x00B0);
 }
 }  // namespace
 
 YawIndicator::YawIndicator(QWidget* parent) : QWidget(parent) {
+    sectors_.fill(proto::SectorStatus::Unknown);
     setFixedSize(kSize, kSize);
     setAttribute(Qt::WA_TransparentForMouseEvents);
     setFocusPolicy(Qt::NoFocus);
@@ -41,6 +80,12 @@ void YawIndicator::setDesiredYaw(float yaw) {
 }
 
 void YawIndicator::setActualYaw(float yaw) {
+    // The robot reports NaN whenever the servo setpoint is unknown (servos off,
+    // PWM error, no command yet). Painting that would rotate the turret by NaN.
+    if (!std::isfinite(yaw)) {
+        clearActualYaw();
+        return;
+    }
     if (has_actual_ && std::fabs(yaw - actual_) < kEpsilon) return;
     has_actual_ = true;
     actual_ = yaw;
@@ -51,6 +96,23 @@ void YawIndicator::clearActualYaw() {
     if (!has_actual_) return;
     has_actual_ = false;
     update();
+}
+
+void YawIndicator::setSectors(const proto::SectorStatus (&sectors)[proto::SECTOR_COUNT]) {
+    bool changed = false;
+    for (int i = 0; i < proto::SECTOR_COUNT; ++i) {
+        const size_t index = static_cast<size_t>(i);
+        if (sectors_[index] == sectors[index]) continue;
+        sectors_[index] = sectors[index];
+        changed = true;
+    }
+    if (changed) update();
+}
+
+void YawIndicator::clearSectors() {
+    proto::SectorStatus unknown[proto::SECTOR_COUNT];
+    for (auto& sector : unknown) sector = proto::SectorStatus::Unknown;
+    setSectors(unknown);
 }
 
 void YawIndicator::paintEvent(QPaintEvent*) {
@@ -71,6 +133,18 @@ void YawIndicator::paintEvent(QPaintEvent*) {
     const QPointF c(width() / 2.0, (kHeader + (height() - kFooter)) / 2.0);
     const double r = std::min(width() / 2.0 - 12.0, (height() - kFooter - kHeader) / 2.0 - 4.0);
     const QRectF ring(c.x() - r, c.y() - r, 2 * r, 2 * r);
+
+    // Obstacle sectors, clockwise from the nose: one 60 deg wedge each, in the
+    // outer band. Drawn before the grid so the ticks stay legible on top, and
+    // left with a gap between wedges so the six stay countable at this size.
+    p.setPen(Qt::NoPen);
+    for (int i = 0; i < proto::SECTOR_COUNT; ++i) {
+        const SectorPaint paint = sectorPaint(sectors_[static_cast<size_t>(i)]);
+        QColor fill = paint.color;
+        fill.setAlpha(paint.alpha);
+        p.setBrush(fill);
+        p.drawPath(sectorWedge(c, r - 10.0, r, i * 60.0, 27.0));
+    }
 
     // Degree grid. Angles the turret cannot reach are drawn dimmer, and the
     // reachable sector is outlined on the ring.

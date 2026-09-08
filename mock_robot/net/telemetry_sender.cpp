@@ -1,5 +1,7 @@
-#include "util/socket_utils.h"
+#include "utils/socket_utils.h"
 
+#include <algorithm>
+#include <chrono>
 #include <cstdio>
 
 #include "robot_runtime.h"
@@ -40,6 +42,11 @@ void runTelemetrySender(const RobotOptions& options, RobotRuntime& runtime) {
             telemetry.cpu_temp = system.cpu_temp;
             telemetry.battery_level = system.battery_level;
             telemetry.camera = runtime.appliedCamera();
+            // Already-evaluated verdict from the lidar module; this thread does
+            // not know the thresholds and must not re-derive them.
+            const SectorStatuses sectors = runtime.obstacles.statuses(
+                std::chrono::milliseconds(options.lidar.max_age_ms));
+            std::copy(sectors.begin(), sectors.end(), telemetry.sectors);
 
             const auto sent = net::sendExact(client.get(), &telemetry, sizeof(telemetry),
                 net::Clock::now() + std::chrono::seconds(1), runtime.running);

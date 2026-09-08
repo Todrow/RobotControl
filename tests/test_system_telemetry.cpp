@@ -168,16 +168,17 @@ void testDisappearingSensors() {
 }
 
 void testWireRepresentation() {
-    static_assert(sizeof(proto::Telemetry) == 160, "Telemetry wire size");
-    static_assert(offsetof(proto::Telemetry, camera) == 152, "Camera wire offset");
+    static_assert(sizeof(proto::Telemetry) == 22, "Telemetry wire size");
+    static_assert(offsetof(proto::Telemetry, sectors) == 8, "Sector wire offset");
+    static_assert(offsetof(proto::Telemetry, camera) == 14, "Camera wire offset");
     static_assert(sizeof(proto::DesiredState) == 16, "DesiredState wire size");
     check(std::isnan(proto::UNKNOWN_TELEMETRY_VALUE), "Unknown wire value must be NaN");
     auto telemetry = proto::unknownTelemetry();
     check(std::isnan(telemetry.cpu_temp) && std::isnan(telemetry.battery_level),
           "Unknown telemetry must initialize system readings");
-    for (const auto& point : telemetry.points) {
-        check(std::isnan(point.angle) && std::isnan(point.distance) && std::isnan(point.intensity),
-              "Unknown telemetry must initialize every lidar value");
+    for (const auto& sector : telemetry.sectors) {
+        check(sector == proto::SectorStatus::Unknown,
+              "Unknown telemetry must leave every sector unknown, never Green");
     }
     check(std::isnan(telemetry.camera.pitch) && std::isnan(telemetry.camera.yaw),
           "Unknown telemetry must initialize both camera axes");
@@ -190,16 +191,17 @@ void testWireRepresentation() {
     std::memcpy(&decoded, wire.data(), wire.size());
     checkValue(decoded.cpu_temp, 48.5f, "CPU survives raw wire roundtrip");
     checkValue(decoded.battery_level, 0.0f, "Real zero survives raw wire roundtrip");
-    check(std::isnan(decoded.points[0].distance) && std::isnan(decoded.camera.yaw),
+    check(decoded.sectors[proto::SECTOR_FORWARD] == proto::SectorStatus::Unknown &&
+              std::isnan(decoded.camera.yaw),
           "Unknown values survive raw wire roundtrip");
     telemetry.camera = {0.25f, -0.5f};
     std::memcpy(wire.data(), &telemetry, wire.size());
     float pitch = 0.0f;
     float yaw = 0.0f;
-    std::memcpy(&pitch, wire.data() + 152, sizeof(pitch));
-    std::memcpy(&yaw, wire.data() + 156, sizeof(yaw));
-    checkValue(pitch, 0.25f, "Camera pitch occupies bytes 152..155");
-    checkValue(yaw, -0.5f, "Camera yaw occupies bytes 156..159");
+    std::memcpy(&pitch, wire.data() + 14, sizeof(pitch));
+    std::memcpy(&yaw, wire.data() + 18, sizeof(yaw));
+    checkValue(pitch, 0.25f, "Camera pitch occupies bytes 14..17");
+    checkValue(yaw, -0.5f, "Camera yaw occupies bytes 18..21");
 }
 
 }  // namespace

@@ -22,11 +22,12 @@ add_executable(mock_robot
     net/command_listener.cpp
     net/telemetry_sender.cpp
     net/video_sender.cpp
+    lidar/lidar_reader.cpp
     actuators/drive_controller.cpp
     actuators/servo_controller.cpp
 )
 # mock_robot/ on the include path: sources say "net/...", "actuators/...",
-# "util/..." instead of counting ../ hops. tests/test_drive_uart.py passes the
+# "utils/..." instead of counting ../ hops. tests/test_drive_uart.py passes the
 # same -I, so the harness compiles the same sources unchanged.
 target_include_directories(mock_robot PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}"

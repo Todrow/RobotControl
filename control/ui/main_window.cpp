@@ -251,6 +251,7 @@ void MainWindow::onTelemetry(proto::Telemetry telemetry) {
         arrivals_.pop_front();
     hud_->setTelemetry(telemetry.cpu_temp, telemetry.battery_level);
     yaw_view_->setActualYaw(telemetry.camera.yaw);
+    yaw_view_->setSectors(telemetry.sectors);
     updateQuality();
 }
 
@@ -268,6 +269,7 @@ void MainWindow::onTelemetryStatus(bool connected) {
         arrivals_.clear();
         hud_->clearTelemetry();
         yaw_view_->clearActualYaw();
+        yaw_view_->clearSectors();
     }
     updateQuality();
 }
