@@ -4,5 +4,6 @@ C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/CMakeFiles/
 C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/CMakeFiles/control_autogen_timestamp_deps.dir
 C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/CMakeFiles/control_autogen.dir
 C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/mock_robot-build/CMakeFiles/mock_robot.dir
+C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/mock_robot-build/CMakeFiles/ldlidar_sdk.dir
 C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/mock_robot-build/CMakeFiles/edit_cache.dir
 C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/mock_robot-build/CMakeFiles/rebuild_cache.dir

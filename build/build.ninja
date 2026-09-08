@@ -254,14 +254,14 @@ build CMakeFiles/control_autogen | ${cmake_ninja_workdir}CMakeFiles/control_auto
 #############################################
 # Order-only phony target for mock_robot
 
-build cmake_object_order_depends_target_mock_robot: phony || .
+build cmake_object_order_depends_target_mock_robot: phony || cmake_object_order_depends_target_ldlidar_sdk
 
 build mock_robot-build/CMakeFiles/mock_robot.dir/main.cpp.obj: CXX_COMPILER__mock_robot_unscanned_Release C$:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/main.cpp || cmake_object_order_depends_target_mock_robot
   CONFIG = Release
   DEFINES = -DNOMINMAX
   DEP_FILE = mock_robot-build\CMakeFiles\mock_robot.dir\main.cpp.obj.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic
-  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../common -isystem C:/msys64/ucrt64/bin/../include/gstreamer-1.0 -isystem C:/msys64/ucrt64/bin/../include/glib-2.0 -isystem C:/msys64/ucrt64/bin/../lib/glib-2.0/include -isystem C:/msys64/ucrt64/bin/../include/orc-0.4
+  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../common -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../third_party/ldlidar_sdk/include -isystem C:/msys64/ucrt64/bin/../include/gstreamer-1.0 -isystem C:/msys64/ucrt64/bin/../include/glib-2.0 -isystem C:/msys64/ucrt64/bin/../lib/glib-2.0/include -isystem C:/msys64/ucrt64/bin/../include/orc-0.4
   OBJECT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
   OBJECT_FILE_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
   TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
@@ -271,7 +271,7 @@ build mock_robot-build/CMakeFiles/mock_robot.dir/system_telemetry.cpp.obj: CXX_C
   DEFINES = -DNOMINMAX
   DEP_FILE = mock_robot-build\CMakeFiles\mock_robot.dir\system_telemetry.cpp.obj.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic
-  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../common -isystem C:/msys64/ucrt64/bin/../include/gstreamer-1.0 -isystem C:/msys64/ucrt64/bin/../include/glib-2.0 -isystem C:/msys64/ucrt64/bin/../lib/glib-2.0/include -isystem C:/msys64/ucrt64/bin/../include/orc-0.4
+  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../common -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../third_party/ldlidar_sdk/include -isystem C:/msys64/ucrt64/bin/../include/gstreamer-1.0 -isystem C:/msys64/ucrt64/bin/../include/glib-2.0 -isystem C:/msys64/ucrt64/bin/../lib/glib-2.0/include -isystem C:/msys64/ucrt64/bin/../include/orc-0.4
   OBJECT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
   OBJECT_FILE_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
   TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
@@ -281,7 +281,7 @@ build mock_robot-build/CMakeFiles/mock_robot.dir/net/command_listener.cpp.obj: C
   DEFINES = -DNOMINMAX
   DEP_FILE = mock_robot-build\CMakeFiles\mock_robot.dir\net\command_listener.cpp.obj.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic
-  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../common -isystem C:/msys64/ucrt64/bin/../include/gstreamer-1.0 -isystem C:/msys64/ucrt64/bin/../include/glib-2.0 -isystem C:/msys64/ucrt64/bin/../lib/glib-2.0/include -isystem C:/msys64/ucrt64/bin/../include/orc-0.4
+  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../common -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../third_party/ldlidar_sdk/include -isystem C:/msys64/ucrt64/bin/../include/gstreamer-1.0 -isystem C:/msys64/ucrt64/bin/../include/glib-2.0 -isystem C:/msys64/ucrt64/bin/../lib/glib-2.0/include -isystem C:/msys64/ucrt64/bin/../include/orc-0.4
   OBJECT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
   OBJECT_FILE_DIR = mock_robot-build\CMakeFiles\mock_robot.dir\net
   TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
@@ -291,7 +291,7 @@ build mock_robot-build/CMakeFiles/mock_robot.dir/net/telemetry_sender.cpp.obj: C
   DEFINES = -DNOMINMAX
   DEP_FILE = mock_robot-build\CMakeFiles\mock_robot.dir\net\telemetry_sender.cpp.obj.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic
-  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../common -isystem C:/msys64/ucrt64/bin/../include/gstreamer-1.0 -isystem C:/msys64/ucrt64/bin/../include/glib-2.0 -isystem C:/msys64/ucrt64/bin/../lib/glib-2.0/include -isystem C:/msys64/ucrt64/bin/../include/orc-0.4
+  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../common -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../third_party/ldlidar_sdk/include -isystem C:/msys64/ucrt64/bin/../include/gstreamer-1.0 -isystem C:/msys64/ucrt64/bin/../include/glib-2.0 -isystem C:/msys64/ucrt64/bin/../lib/glib-2.0/include -isystem C:/msys64/ucrt64/bin/../include/orc-0.4
   OBJECT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
   OBJECT_FILE_DIR = mock_robot-build\CMakeFiles\mock_robot.dir\net
   TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
@@ -301,7 +301,7 @@ build mock_robot-build/CMakeFiles/mock_robot.dir/net/video_sender.cpp.obj: CXX_C
   DEFINES = -DNOMINMAX
   DEP_FILE = mock_robot-build\CMakeFiles\mock_robot.dir\net\video_sender.cpp.obj.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic
-  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../common -isystem C:/msys64/ucrt64/bin/../include/gstreamer-1.0 -isystem C:/msys64/ucrt64/bin/../include/glib-2.0 -isystem C:/msys64/ucrt64/bin/../lib/glib-2.0/include -isystem C:/msys64/ucrt64/bin/../include/orc-0.4
+  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../common -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../third_party/ldlidar_sdk/include -isystem C:/msys64/ucrt64/bin/../include/gstreamer-1.0 -isystem C:/msys64/ucrt64/bin/../include/glib-2.0 -isystem C:/msys64/ucrt64/bin/../lib/glib-2.0/include -isystem C:/msys64/ucrt64/bin/../include/orc-0.4
   OBJECT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
   OBJECT_FILE_DIR = mock_robot-build\CMakeFiles\mock_robot.dir\net
   TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
@@ -311,7 +311,7 @@ build mock_robot-build/CMakeFiles/mock_robot.dir/lidar/lidar_reader.cpp.obj: CXX
   DEFINES = -DNOMINMAX
   DEP_FILE = mock_robot-build\CMakeFiles\mock_robot.dir\lidar\lidar_reader.cpp.obj.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic
-  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../common -isystem C:/msys64/ucrt64/bin/../include/gstreamer-1.0 -isystem C:/msys64/ucrt64/bin/../include/glib-2.0 -isystem C:/msys64/ucrt64/bin/../lib/glib-2.0/include -isystem C:/msys64/ucrt64/bin/../include/orc-0.4
+  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../common -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../third_party/ldlidar_sdk/include -isystem C:/msys64/ucrt64/bin/../include/gstreamer-1.0 -isystem C:/msys64/ucrt64/bin/../include/glib-2.0 -isystem C:/msys64/ucrt64/bin/../lib/glib-2.0/include -isystem C:/msys64/ucrt64/bin/../include/orc-0.4
   OBJECT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
   OBJECT_FILE_DIR = mock_robot-build\CMakeFiles\mock_robot.dir\lidar
   TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
@@ -321,7 +321,7 @@ build mock_robot-build/CMakeFiles/mock_robot.dir/actuators/drive_controller.cpp.
   DEFINES = -DNOMINMAX
   DEP_FILE = mock_robot-build\CMakeFiles\mock_robot.dir\actuators\drive_controller.cpp.obj.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic
-  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../common -isystem C:/msys64/ucrt64/bin/../include/gstreamer-1.0 -isystem C:/msys64/ucrt64/bin/../include/glib-2.0 -isystem C:/msys64/ucrt64/bin/../lib/glib-2.0/include -isystem C:/msys64/ucrt64/bin/../include/orc-0.4
+  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../common -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../third_party/ldlidar_sdk/include -isystem C:/msys64/ucrt64/bin/../include/gstreamer-1.0 -isystem C:/msys64/ucrt64/bin/../include/glib-2.0 -isystem C:/msys64/ucrt64/bin/../lib/glib-2.0/include -isystem C:/msys64/ucrt64/bin/../include/orc-0.4
   OBJECT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
   OBJECT_FILE_DIR = mock_robot-build\CMakeFiles\mock_robot.dir\actuators
   TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
@@ -331,7 +331,7 @@ build mock_robot-build/CMakeFiles/mock_robot.dir/actuators/servo_controller.cpp.
   DEFINES = -DNOMINMAX
   DEP_FILE = mock_robot-build\CMakeFiles\mock_robot.dir\actuators\servo_controller.cpp.obj.d
   FLAGS = -O3 -DNDEBUG -std=c++17 -Wall -Wextra -Wpedantic
-  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../common -isystem C:/msys64/ucrt64/bin/../include/gstreamer-1.0 -isystem C:/msys64/ucrt64/bin/../include/glib-2.0 -isystem C:/msys64/ucrt64/bin/../lib/glib-2.0/include -isystem C:/msys64/ucrt64/bin/../include/orc-0.4
+  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../common -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../third_party/ldlidar_sdk/include -isystem C:/msys64/ucrt64/bin/../include/gstreamer-1.0 -isystem C:/msys64/ucrt64/bin/../include/glib-2.0 -isystem C:/msys64/ucrt64/bin/../lib/glib-2.0/include -isystem C:/msys64/ucrt64/bin/../include/orc-0.4
   OBJECT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
   OBJECT_FILE_DIR = mock_robot-build\CMakeFiles\mock_robot.dir\actuators
   TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
@@ -344,10 +344,10 @@ build mock_robot-build/CMakeFiles/mock_robot.dir/actuators/servo_controller.cpp.
 #############################################
 # Link the executable mock_robot.exe
 
-build mock_robot.exe: CXX_EXECUTABLE_LINKER__mock_robot_Release mock_robot-build/CMakeFiles/mock_robot.dir/main.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/system_telemetry.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/net/command_listener.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/net/telemetry_sender.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/net/video_sender.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/lidar/lidar_reader.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/actuators/drive_controller.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/actuators/servo_controller.cpp.obj | C$:/msys64/ucrt64/lib/libgstvideo-1.0.dll.a C$:/msys64/ucrt64/lib/libgstbase-1.0.dll.a C$:/msys64/ucrt64/lib/libgstreamer-1.0.dll.a C$:/msys64/ucrt64/lib/libgobject-2.0.dll.a C$:/msys64/ucrt64/lib/libglib-2.0.dll.a C$:/msys64/ucrt64/lib/libintl.dll.a
+build mock_robot.exe: CXX_EXECUTABLE_LINKER__mock_robot_Release mock_robot-build/CMakeFiles/mock_robot.dir/main.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/system_telemetry.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/net/command_listener.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/net/telemetry_sender.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/net/video_sender.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/lidar/lidar_reader.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/actuators/drive_controller.cpp.obj mock_robot-build/CMakeFiles/mock_robot.dir/actuators/servo_controller.cpp.obj | mock_robot-build/libldlidar_sdk.a C$:/msys64/ucrt64/lib/libgstvideo-1.0.dll.a C$:/msys64/ucrt64/lib/libgstbase-1.0.dll.a C$:/msys64/ucrt64/lib/libgstreamer-1.0.dll.a C$:/msys64/ucrt64/lib/libgobject-2.0.dll.a C$:/msys64/ucrt64/lib/libglib-2.0.dll.a C$:/msys64/ucrt64/lib/libintl.dll.a || mock_robot-build/libldlidar_sdk.a
   CONFIG = Release
   FLAGS = -O3 -DNDEBUG
-  LINK_LIBRARIES = -lws2_32  C:/msys64/ucrt64/lib/libgstvideo-1.0.dll.a  C:/msys64/ucrt64/lib/libgstbase-1.0.dll.a  C:/msys64/ucrt64/lib/libgstreamer-1.0.dll.a  C:/msys64/ucrt64/lib/libgobject-2.0.dll.a  C:/msys64/ucrt64/lib/libglib-2.0.dll.a  C:/msys64/ucrt64/lib/libintl.dll.a  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
+  LINK_LIBRARIES = -lws2_32  mock_robot-build/libldlidar_sdk.a  C:/msys64/ucrt64/lib/libgstvideo-1.0.dll.a  C:/msys64/ucrt64/lib/libgstbase-1.0.dll.a  C:/msys64/ucrt64/lib/libgstreamer-1.0.dll.a  C:/msys64/ucrt64/lib/libgobject-2.0.dll.a  C:/msys64/ucrt64/lib/libglib-2.0.dll.a  C:/msys64/ucrt64/lib/libintl.dll.a  -lsetupapi  -lcfgmgr32  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
   POST_BUILD = cd .
   PRE_LINK = cd .
@@ -355,6 +355,114 @@ build mock_robot.exe: CXX_EXECUTABLE_LINKER__mock_robot_Release mock_robot-build
   TARGET_IMPLIB = mock_robot-build\libmock_robot.dll.a
   TARGET_PDB = mock_robot.exe.dbg
   TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\mock_robot.dir
+
+# =============================================================================
+# Object build statements for STATIC_LIBRARY target ldlidar_sdk
+
+
+#############################################
+# Order-only phony target for ldlidar_sdk
+
+build cmake_object_order_depends_target_ldlidar_sdk: phony || .
+
+build mock_robot-build/CMakeFiles/ldlidar_sdk.dir/__/third_party/ldlidar_sdk/src/ldlidar_driver.cpp.obj: CXX_COMPILER__ldlidar_sdk_unscanned_Release C$:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/third_party/ldlidar_sdk/src/ldlidar_driver.cpp || cmake_object_order_depends_target_ldlidar_sdk
+  CONFIG = Release
+  DEP_FILE = mock_robot-build\CMakeFiles\ldlidar_sdk.dir\__\third_party\ldlidar_sdk\src\ldlidar_driver.cpp.obj.d
+  FLAGS = -O3 -DNDEBUG -std=c++17
+  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../third_party/ldlidar_sdk/include
+  OBJECT_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir
+  OBJECT_FILE_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir\__\third_party\ldlidar_sdk\src
+  TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir
+
+build mock_robot-build/CMakeFiles/ldlidar_sdk.dir/__/third_party/ldlidar_sdk/src/ldlidar_dataprocess.cpp.obj: CXX_COMPILER__ldlidar_sdk_unscanned_Release C$:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/third_party/ldlidar_sdk/src/ldlidar_dataprocess.cpp || cmake_object_order_depends_target_ldlidar_sdk
+  CONFIG = Release
+  DEP_FILE = mock_robot-build\CMakeFiles\ldlidar_sdk.dir\__\third_party\ldlidar_sdk\src\ldlidar_dataprocess.cpp.obj.d
+  FLAGS = -O3 -DNDEBUG -std=c++17
+  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../third_party/ldlidar_sdk/include
+  OBJECT_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir
+  OBJECT_FILE_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir\__\third_party\ldlidar_sdk\src
+  TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir
+
+build mock_robot-build/CMakeFiles/ldlidar_sdk.dir/__/third_party/ldlidar_sdk/src/ldlidar_protocol.cpp.obj: CXX_COMPILER__ldlidar_sdk_unscanned_Release C$:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/third_party/ldlidar_sdk/src/ldlidar_protocol.cpp || cmake_object_order_depends_target_ldlidar_sdk
+  CONFIG = Release
+  DEP_FILE = mock_robot-build\CMakeFiles\ldlidar_sdk.dir\__\third_party\ldlidar_sdk\src\ldlidar_protocol.cpp.obj.d
+  FLAGS = -O3 -DNDEBUG -std=c++17
+  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../third_party/ldlidar_sdk/include
+  OBJECT_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir
+  OBJECT_FILE_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir\__\third_party\ldlidar_sdk\src
+  TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir
+
+build mock_robot-build/CMakeFiles/ldlidar_sdk.dir/__/third_party/ldlidar_sdk/src/log_module.cpp.obj: CXX_COMPILER__ldlidar_sdk_unscanned_Release C$:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/third_party/ldlidar_sdk/src/log_module.cpp || cmake_object_order_depends_target_ldlidar_sdk
+  CONFIG = Release
+  DEP_FILE = mock_robot-build\CMakeFiles\ldlidar_sdk.dir\__\third_party\ldlidar_sdk\src\log_module.cpp.obj.d
+  FLAGS = -O3 -DNDEBUG -std=c++17
+  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../third_party/ldlidar_sdk/include
+  OBJECT_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir
+  OBJECT_FILE_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir\__\third_party\ldlidar_sdk\src
+  TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir
+
+build mock_robot-build/CMakeFiles/ldlidar_sdk.dir/__/third_party/ldlidar_sdk/src/sl_transform.cpp.obj: CXX_COMPILER__ldlidar_sdk_unscanned_Release C$:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/third_party/ldlidar_sdk/src/sl_transform.cpp || cmake_object_order_depends_target_ldlidar_sdk
+  CONFIG = Release
+  DEP_FILE = mock_robot-build\CMakeFiles\ldlidar_sdk.dir\__\third_party\ldlidar_sdk\src\sl_transform.cpp.obj.d
+  FLAGS = -O3 -DNDEBUG -std=c++17
+  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../third_party/ldlidar_sdk/include
+  OBJECT_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir
+  OBJECT_FILE_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir\__\third_party\ldlidar_sdk\src
+  TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir
+
+build mock_robot-build/CMakeFiles/ldlidar_sdk.dir/__/third_party/ldlidar_sdk/src/slbf.cpp.obj: CXX_COMPILER__ldlidar_sdk_unscanned_Release C$:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/third_party/ldlidar_sdk/src/slbf.cpp || cmake_object_order_depends_target_ldlidar_sdk
+  CONFIG = Release
+  DEP_FILE = mock_robot-build\CMakeFiles\ldlidar_sdk.dir\__\third_party\ldlidar_sdk\src\slbf.cpp.obj.d
+  FLAGS = -O3 -DNDEBUG -std=c++17
+  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../third_party/ldlidar_sdk/include
+  OBJECT_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir
+  OBJECT_FILE_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir\__\third_party\ldlidar_sdk\src
+  TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir
+
+build mock_robot-build/CMakeFiles/ldlidar_sdk.dir/__/third_party/ldlidar_sdk/src/tofbf.cpp.obj: CXX_COMPILER__ldlidar_sdk_unscanned_Release C$:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/third_party/ldlidar_sdk/src/tofbf.cpp || cmake_object_order_depends_target_ldlidar_sdk
+  CONFIG = Release
+  DEP_FILE = mock_robot-build\CMakeFiles\ldlidar_sdk.dir\__\third_party\ldlidar_sdk\src\tofbf.cpp.obj.d
+  FLAGS = -O3 -DNDEBUG -std=c++17
+  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../third_party/ldlidar_sdk/include
+  OBJECT_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir
+  OBJECT_FILE_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir\__\third_party\ldlidar_sdk\src
+  TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir
+
+build mock_robot-build/CMakeFiles/ldlidar_sdk.dir/__/third_party/ldlidar_sdk/src/ldlidar_driver_win.cpp.obj: CXX_COMPILER__ldlidar_sdk_unscanned_Release C$:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/third_party/ldlidar_sdk/src/ldlidar_driver_win.cpp || cmake_object_order_depends_target_ldlidar_sdk
+  CONFIG = Release
+  DEP_FILE = mock_robot-build\CMakeFiles\ldlidar_sdk.dir\__\third_party\ldlidar_sdk\src\ldlidar_driver_win.cpp.obj.d
+  FLAGS = -O3 -DNDEBUG -std=c++17
+  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../third_party/ldlidar_sdk/include
+  OBJECT_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir
+  OBJECT_FILE_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir\__\third_party\ldlidar_sdk\src
+  TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir
+
+build mock_robot-build/CMakeFiles/ldlidar_sdk.dir/__/third_party/ldlidar_sdk/src/serial_interface_win.cpp.obj: CXX_COMPILER__ldlidar_sdk_unscanned_Release C$:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/third_party/ldlidar_sdk/src/serial_interface_win.cpp || cmake_object_order_depends_target_ldlidar_sdk
+  CONFIG = Release
+  DEP_FILE = mock_robot-build\CMakeFiles\ldlidar_sdk.dir\__\third_party\ldlidar_sdk\src\serial_interface_win.cpp.obj.d
+  FLAGS = -O3 -DNDEBUG -std=c++17
+  INCLUDES = -IC:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/mock_robot/../third_party/ldlidar_sdk/include
+  OBJECT_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir
+  OBJECT_FILE_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir\__\third_party\ldlidar_sdk\src
+  TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir
+
+
+# =============================================================================
+# Link build statements for STATIC_LIBRARY target ldlidar_sdk
+
+
+#############################################
+# Link the static library mock_robot-build\libldlidar_sdk.a
+
+build mock_robot-build/libldlidar_sdk.a: CXX_STATIC_LIBRARY_LINKER__ldlidar_sdk_Release mock_robot-build/CMakeFiles/ldlidar_sdk.dir/__/third_party/ldlidar_sdk/src/ldlidar_driver.cpp.obj mock_robot-build/CMakeFiles/ldlidar_sdk.dir/__/third_party/ldlidar_sdk/src/ldlidar_dataprocess.cpp.obj mock_robot-build/CMakeFiles/ldlidar_sdk.dir/__/third_party/ldlidar_sdk/src/ldlidar_protocol.cpp.obj mock_robot-build/CMakeFiles/ldlidar_sdk.dir/__/third_party/ldlidar_sdk/src/log_module.cpp.obj mock_robot-build/CMakeFiles/ldlidar_sdk.dir/__/third_party/ldlidar_sdk/src/sl_transform.cpp.obj mock_robot-build/CMakeFiles/ldlidar_sdk.dir/__/third_party/ldlidar_sdk/src/slbf.cpp.obj mock_robot-build/CMakeFiles/ldlidar_sdk.dir/__/third_party/ldlidar_sdk/src/tofbf.cpp.obj mock_robot-build/CMakeFiles/ldlidar_sdk.dir/__/third_party/ldlidar_sdk/src/ldlidar_driver_win.cpp.obj mock_robot-build/CMakeFiles/ldlidar_sdk.dir/__/third_party/ldlidar_sdk/src/serial_interface_win.cpp.obj
+  CONFIG = Release
+  LANGUAGE_COMPILE_FLAGS = -O3 -DNDEBUG
+  OBJECT_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir
+  POST_BUILD = cd .
+  PRE_LINK = cd .
+  TARGET_FILE = mock_robot-build\libldlidar_sdk.a
+  TARGET_PDB = ldlidar_sdk.a.dbg
+  TARGET_SUPPORT_DIR = mock_robot-build\CMakeFiles\ldlidar_sdk.dir
 
 
 #############################################
@@ -384,6 +492,10 @@ build mock_robot-build/rebuild_cache: phony mock_robot-build/CMakeFiles/rebuild_
 
 build control: phony control.exe
 
+build ldlidar_sdk: phony mock_robot-build/libldlidar_sdk.a
+
+build libldlidar_sdk.a: phony mock_robot-build/libldlidar_sdk.a
+
 build mock_robot: phony mock_robot.exe
 
 # =============================================================================
@@ -401,7 +513,7 @@ build all: phony control.exe mock_robot-build/all
 #############################################
 # Folder: C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/mock_robot-build
 
-build mock_robot-build/all: phony mock_robot.exe
+build mock_robot-build/all: phony mock_robot.exe mock_robot-build/libldlidar_sdk.a
 
 # =============================================================================
 # Built-in targets

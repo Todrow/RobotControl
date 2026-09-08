@@ -1,6 +1,8 @@
 set(__QT_DEPLOY_TARGET_mock_robot_FILE C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/mock_robot.exe)
 set(__QT_DEPLOY_TARGET_mock_robot_TYPE EXECUTABLE)
 set(__QT_DEPLOY_TARGET_mock_robot_RUNTIME_DLLS )
+set(__QT_DEPLOY_TARGET_ldlidar_sdk_FILE C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/mock_robot-build/libldlidar_sdk.a)
+set(__QT_DEPLOY_TARGET_ldlidar_sdk_TYPE STATIC_LIBRARY)
 set(__QT_DEPLOY_TARGET_control_FILE C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/control.exe)
 set(__QT_DEPLOY_TARGET_control_TYPE EXECUTABLE)
 set(__QT_DEPLOY_TARGET_control_RUNTIME_DLLS C:/msys64/ucrt64/bin/Qt6Widgets.dll;C:/msys64/ucrt64/bin/Qt6Gui.dll;C:/msys64/ucrt64/bin/Qt6Core.dll)
