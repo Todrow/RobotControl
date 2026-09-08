@@ -13,8 +13,8 @@ using SectorStatuses = std::array<proto::SectorStatus, proto::SECTOR_COUNT>;
 // Two thresholds, so three bands: [0, red) is Red, [red, yellow) is Yellow, and
 // anything further is Green. Tune on the real robot via the CLI, not by rebuilding.
 struct ObstacleThresholds {
-    float red_mm = 300.0f;
-    float yellow_mm = 800.0f;
+    float red_mm = 100.0f;
+    float yellow_mm = 150.0f;
 };
 
 inline bool validThresholds(const ObstacleThresholds& thresholds) noexcept {

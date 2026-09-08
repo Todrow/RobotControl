@@ -50,11 +50,11 @@ void printUsage(const char* executable) {
         "  --drive-uart          Enable Linux UART wheel commands to ESP32\n"
         "  --drive-uart-device P UART device (default /dev/serial0)\n"
         "  --drive-uart-baud N   9600|19200|38400|57600|115200|230400 (default 115200)\n"
-        "  --lidar-source SOURCE sim | none (default sim: placeholder distances)\n"
+        "  --lidar-source SOURCE real | sim | none (default real: the STL-19P lidar)\n"
         "  --lidar-period MS     Sector publish period, 10..1000 (default 100)\n"
         "  --lidar-max-age MS    Samples older than this read as Unknown (default 500)\n"
-        "  --obstacle-red MM     Red below this distance, 10..10000 (default 300)\n"
-        "  --obstacle-yellow MM  Yellow below this distance, 10..10000 (default 800)\n"
+        "  --obstacle-red MM     Red below this distance, 10..10000 (default 100)\n"
+        "  --obstacle-yellow MM  Yellow below this distance, 10..10000 (default 150)\n"
         "  --servos              Enable Linux hardware PWM camera servos\n"
         "  --servo-pwm-chip PATH  /sys/class/pwm/pwmchipN; default: auto-detect Pi 4 PWM0\n"
         "  --pitch-channel N     PWM channel 0 or 1 (default 0: BCM12, physical pin 32)\n"
@@ -72,7 +72,8 @@ void printUsage(const char* executable) {
         "Signed power: -100..100; LEFT/RIGHT pivot in place. UART: 8N1, no flow control.\n"
         "Camera servos require --servos and pwm-2chan setup.\n"
         "Lidar sectors: forward, forward-right, back-right, back, back-left, forward-left.\n"
-        "No real lidar driver yet: --lidar-source sim publishes placeholder distances,\n"
+        "Lidar: --lidar-source real finds the STL-19P on the serial ports by itself and\n"
+        "reports 500 mm for anything further away; sim publishes placeholder distances,\n"
         "none leaves every sector Unknown. Verdicts are reported only, never enforced.\n"
         "Servo pulse limits: 500 <= min < center < max <= 2500 microseconds; 50 Hz.\n"
         "Telemetry: Linux CPU/battery sensors, applied PWM camera setpoint; NaN if unavailable.\n"
@@ -133,10 +134,11 @@ bool parseOptions(int argc, char* argv[], RobotOptions& options) {
                 return false;
             }
         } else if (name == "--lidar-source") {
-            if (value == "sim") options.lidar.source = LidarSource::Simulated;
+            if (value == "real") options.lidar.source = LidarSource::Device;
+            else if (value == "sim") options.lidar.source = LidarSource::Simulated;
             else if (value == "none") options.lidar.source = LidarSource::Disabled;
             else {
-                std::fprintf(stderr, "--lidar-source must be sim or none\n");
+                std::fprintf(stderr, "--lidar-source must be real, sim or none\n");
                 return false;
             }
         } else if (name == "--lidar-period") {
@@ -303,11 +305,10 @@ int main(int argc, char* argv[]) {
                 static_cast<unsigned>(options.command_port),
                 static_cast<unsigned>(options.telemetry_port),
                 static_cast<unsigned>(options.video_port));
-    std::printf("Lidar: %s. PLACEHOLDER distances; verdicts are reported, never enforced.\n",
-                options.lidar.source == LidarSource::Simulated ? "simulated" : "disabled");
-    if (logger) {
-        logger->info("Lidar: ", options.lidar.source == LidarSource::Simulated ? "simulated" : "disabled");
-    }
+    std::printf("Lidar: %s. Verdicts are reported, never enforced.\n",
+                options.lidar.source == LidarSource::Device ? "STL-19P device"
+                : options.lidar.source == LidarSource::Simulated ? "simulated (PLACEHOLDER distances)"
+                                                                : "disabled");
     std::printf("Drive UART: %s. Camera servos: %s. Telemetry: system sensors / NaN if unavailable.\n",
                 options.drive_uart.enabled ? "ENABLED" : "disabled (use --drive-uart)",
                 options.servos.enabled ? "ENABLED" : "disabled (use --servos)");

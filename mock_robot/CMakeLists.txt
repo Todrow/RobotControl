@@ -42,3 +42,33 @@ if(MSVC)
 else()
     target_compile_options(mock_robot PRIVATE -Wall -Wextra -Wpedantic)
 endif()
+
+# ---------------------------------------------------------------------------
+#  LDROBOT lidar SDK (third_party/ldlidar_sdk), built as a small static library
+#  so its warnings and its C++ dialect stay out of the robot's own sources.
+# ---------------------------------------------------------------------------
+set(LDLIDAR_SDK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/ldlidar_sdk")
+add_library(ldlidar_sdk STATIC
+    "${LDLIDAR_SDK_DIR}/src/ldlidar_driver.cpp"
+    "${LDLIDAR_SDK_DIR}/src/ldlidar_dataprocess.cpp"
+    "${LDLIDAR_SDK_DIR}/src/ldlidar_protocol.cpp"
+    "${LDLIDAR_SDK_DIR}/src/log_module.cpp"
+    "${LDLIDAR_SDK_DIR}/src/sl_transform.cpp"
+    "${LDLIDAR_SDK_DIR}/src/slbf.cpp"
+    "${LDLIDAR_SDK_DIR}/src/tofbf.cpp"
+)
+if(WIN32)
+    target_sources(ldlidar_sdk PRIVATE
+        "${LDLIDAR_SDK_DIR}/src/ldlidar_driver_win.cpp"
+        "${LDLIDAR_SDK_DIR}/src/serial_interface_win.cpp")
+    target_link_libraries(ldlidar_sdk PUBLIC setupapi cfgmgr32)
+else()
+    target_sources(ldlidar_sdk PRIVATE
+        "${LDLIDAR_SDK_DIR}/src/ldlidar_driver_linux.cpp"
+        "${LDLIDAR_SDK_DIR}/src/serial_interface_linux.cpp"
+        "${LDLIDAR_SDK_DIR}/src/network_socket_interface_linux.cpp")
+endif()
+target_include_directories(ldlidar_sdk PUBLIC "${LDLIDAR_SDK_DIR}/include")
+target_link_libraries(ldlidar_sdk PUBLIC Threads::Threads)
+
+target_link_libraries(mock_robot PRIVATE ldlidar_sdk)
