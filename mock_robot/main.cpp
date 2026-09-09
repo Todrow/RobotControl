@@ -46,7 +46,7 @@ void printUsage(const char* executable) {
         "  --width PIXELS        Even width, 16..1920 (default 1280)\n"
         "  --height PIXELS       Even height, 16..1080 (default 720)\n"
         "  --fps FPS             Frame rate, 1..30 (default 30)\n"
-        "  --bitrate BITS         H264 bitrate, 100000..25000000 (default 2000000)\n"
+        "  --bitrate BITS         H264 bitrate, 100000..25000000 (default 4000000)\n"
         "  --drive-uart          Enable Linux UART wheel commands to ESP32\n"
         "  --drive-uart-device P UART device (default /dev/serial0)\n"
         "  --drive-uart-baud N   9600|19200|38400|57600|115200|230400 (default 115200)\n"

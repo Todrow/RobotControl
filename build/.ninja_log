@@ -69,3 +69,9 @@
 4112	10100	8106655102396239	CMakeFiles/control.dir/control/ui/main_window.cpp.obj	cc63ff787a593ef2
 4057	10256	8106655101836216	CMakeFiles/control.dir/control/main.cpp.obj	5a4ab5b4618a6a22
 10256	11656	8106655163827580	control.exe	83327320fc5786c2
+103	4503	8106727789925029	mock_robot-build/CMakeFiles/mock_robot.dir/net/telemetry_sender.cpp.obj	cc63e6c6bf9281
+96	4504	8106727789864966	mock_robot-build/CMakeFiles/mock_robot.dir/net/command_listener.cpp.obj	459652e975f372fa
+115	4970	8106727790054929	mock_robot-build/CMakeFiles/mock_robot.dir/lidar/lidar_reader.cpp.obj	99a355b292715699
+109	5203	8106727789994944	mock_robot-build/CMakeFiles/mock_robot.dir/net/video_sender.cpp.obj	694e49dc8a9d8f9d
+69	6502	8106727789595314	mock_robot-build/CMakeFiles/mock_robot.dir/main.cpp.obj	96595a297253d727
+6503	7036	8106727853932800	mock_robot.exe	1ceccec2209739b9

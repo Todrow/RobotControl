@@ -26,7 +26,7 @@ struct RobotOptions {
     int width = 1280;
     int height = 720;
     int framerate = 30;
-    int bitrate = 2000000;
+    int bitrate = 4000000;
     DriveOptions drive_uart;
     ServoOptions servos;
     LidarOptions lidar;
