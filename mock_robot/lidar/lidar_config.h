@@ -13,6 +13,10 @@ struct LidarOptions {
     LidarSource source = LidarSource::Device;
     int period_ms = 100;   // How often the module publishes a fresh sample.
     int max_age_ms = 500;  // Older than this and the sample stops being trusted.
+    // When set, the command listener refuses a drive command that would push the
+    // hull into a sector whose verdict is Red; turning in place and reversing
+    // away stay available. Clear it (--obstacle-no-enforce) for report-only.
+    bool enforce = true;
     ObstacleThresholds thresholds;
 };
 

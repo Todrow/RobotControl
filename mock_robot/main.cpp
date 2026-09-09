@@ -55,6 +55,7 @@ void printUsage(const char* executable) {
         "  --lidar-max-age MS    Samples older than this read as Unknown (default 500)\n"
         "  --obstacle-red MM     Red below this distance, 10..10000 (default 100)\n"
         "  --obstacle-yellow MM  Yellow below this distance, 10..10000 (default 150)\n"
+        "  --obstacle-no-enforce Report Red sectors only; do not block drive commands\n"
         "  --servos              Enable Linux hardware PWM camera servos\n"
         "  --servo-pwm-chip PATH  /sys/class/pwm/pwmchipN; default: auto-detect Pi 4 PWM0\n"
         "  --pitch-channel N     PWM channel 0 or 1 (default 0: BCM12, physical pin 32)\n"
@@ -74,7 +75,9 @@ void printUsage(const char* executable) {
         "Lidar sectors: forward, forward-right, back-right, back, back-left, forward-left.\n"
         "Lidar: --lidar-source real finds the STL-19P on the serial ports by itself and\n"
         "reports 500 mm for anything further away; sim publishes placeholder distances,\n"
-        "none leaves every sector Unknown. Verdicts are reported only, never enforced.\n"
+        "none leaves every sector Unknown. A Red sector blocks drive commands heading\n"
+        "into it (STOP substituted) unless --obstacle-no-enforce is given; turning in\n"
+        "place and reversing away are never blocked.\n"
         "Servo pulse limits: 500 <= min < center < max <= 2500 microseconds; 50 Hz.\n"
         "Telemetry: Linux CPU/battery sensors, applied PWM camera setpoint; NaN if unavailable.\n"
         "Camera: rpicam-vid on Raspberry Pi; ksvideosrc on Windows.\n",
@@ -101,6 +104,10 @@ bool parseOptions(int argc, char* argv[], RobotOptions& options) {
         }
         if (name == "--servos") {
             options.servos.enabled = true;
+            continue;
+        }
+        if (name == "--obstacle-no-enforce") {
+            options.lidar.enforce = false;
             continue;
         }
         if (name == "--pitch-invert" || name == "--yaw-invert") {
@@ -305,16 +312,18 @@ int main(int argc, char* argv[]) {
                 static_cast<unsigned>(options.command_port),
                 static_cast<unsigned>(options.telemetry_port),
                 static_cast<unsigned>(options.video_port));
-    std::printf("Lidar: %s. Verdicts are reported, never enforced.\n",
+    std::printf("Lidar: %s. Red sectors %s drive commands toward them.\n",
                 options.lidar.source == LidarSource::Device ? "STL-19P device"
                 : options.lidar.source == LidarSource::Simulated ? "simulated (PLACEHOLDER distances)"
-                                                                : "disabled");
+                                                                : "disabled",
+                options.lidar.enforce ? "BLOCK" : "do NOT block (report-only)");
     std::printf("Drive UART: %s. Camera servos: %s. Telemetry: system sensors / NaN if unavailable.\n",
                 options.drive_uart.enabled ? "ENABLED" : "disabled (use --drive-uart)",
                 options.servos.enabled ? "ENABLED" : "disabled (use --servos)");
     if (logger) {
         logger->info("Drive UART: ", options.drive_uart.enabled ? "ENABLED" : "disabled",
-                     ". Camera servos: ", options.servos.enabled ? "ENABLED" : "disabled");
+                     ". Camera servos: ", options.servos.enabled ? "ENABLED" : "disabled",
+                     ". Obstacle enforcement: ", options.lidar.enforce ? "ENABLED" : "disabled");
     }
 
     std::thread commands;

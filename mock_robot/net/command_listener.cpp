@@ -6,6 +6,7 @@
 #include "robot_runtime.h"
 #include "actuators/drive_controller.h"
 #include "actuators/servo_controller.h"
+#include "utils/drive_gate.h"
 
 namespace {
 
@@ -37,6 +38,19 @@ bool validState(const proto::DesiredState& state) {
            state.drive_cmd.speed <= 1.0f &&
            std::isfinite(state.camera.pitch) && std::fabs(state.camera.pitch) <= 1.0f &&
            std::isfinite(state.camera.yaw) && std::fabs(state.camera.yaw) <= 1.0f;
+}
+
+// Apply the lidar safety gate to a command before it reaches the UART. Reads the
+// same published verdict as telemetry -- never a second copy of the thresholds --
+// and with the same staleness cutoff, so a sector going Red (or its sample
+// ageing out) is reflected within one command period. With enforcement off, or
+// no trusted sample, the command passes through unchanged.
+proto::DriveCommand gatedDriveCommand(const proto::DriveCommand& command,
+                                      const RobotOptions& options, RobotRuntime& runtime) {
+    if (!options.lidar.enforce) return command;
+    const SectorStatuses sectors =
+        runtime.obstacles.statuses(std::chrono::milliseconds(options.lidar.max_age_ms));
+    return gateDriveCommand(command, sectors);
 }
 
 }  // namespace
@@ -86,7 +100,9 @@ void runCommandListener(const RobotOptions& options, RobotRuntime& runtime, Vide
             } else {
                 // Repeat the short reverse command as an ESP32 heartbeat.
                 // Only the first write starts the duration; repeats never extend it.
-                okay = drive.apply({proto::Direction::BACKWARD, kDisconnectReverseSpeed});
+                // Still gated: never back the robot into a Red sector behind it.
+                okay = drive.apply(gatedDriveCommand({proto::Direction::BACKWARD, kDisconnectReverseSpeed},
+                                                     options, runtime));
                 const auto written_at = net::Clock::now();
                 if (recovery == RecoveryPhase::Paused) {
                     recovery = RecoveryPhase::Reversing;
@@ -130,6 +146,7 @@ void runCommandListener(const RobotOptions& options, RobotRuntime& runtime, Vide
         proto::DesiredState previous{};
         bool have_previous = false;
         bool connection_lost = false;
+        bool gate_blocking = false;
         while (runtime.running.load()) {
             proto::DesiredState state{};
             const auto received = net::recvExact(client.get(), &state, sizeof(state),
@@ -155,8 +172,22 @@ void runCommandListener(const RobotOptions& options, RobotRuntime& runtime, Vide
                 break;
             }
             if (options.servos.enabled) runtime.setAppliedCamera(state.camera);
+            // Refuse motion the lidar says is unsafe before it reaches the UART.
+            // Re-checked every command, so a sector turning Red stops the robot
+            // within one command period; the operator can still pivot or reverse.
+            const proto::DriveCommand drive_cmd =
+                gatedDriveCommand(state.drive_cmd, options, runtime);
+            const bool blocked_now = drive_cmd.direction != state.drive_cmd.direction;
+            if (blocked_now != gate_blocking) {
+                gate_blocking = blocked_now;
+                if (blocked_now)
+                    std::fprintf(stderr, "[cmd] obstacle gate: %s refused, Red sector ahead; STOP\n",
+                                 directionName(state.drive_cmd.direction));
+                else
+                    std::printf("[cmd] obstacle gate: path clear; operator control resumed\n");
+            }
             // Forward every complete command, including repeats, as a UART frame.
-            if (!drive.apply(state.drive_cmd)) {
+            if (!drive.apply(drive_cmd)) {
                 runtime.failed.store(true);
                 runtime.running.store(false);
                 break;
