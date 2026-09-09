@@ -39,7 +39,24 @@ enum class SectorStatus : uint8_t {
     Red     = 3,
 };
 
-enum class Direction : uint8_t { STOP = 0, FORWARD = 1, BACKWARD = 2, LEFT = 3, RIGHT = 4 };
+// LEFT/RIGHT turn in place; the four diagonals drive both wheels forward (or
+// both backward) with the inner one slowed down, so the robot follows an arc.
+// Appending values keeps DesiredState at 16 bytes, but a robot built from the
+// older header rejects 5..8 as malformed: rebuild BOTH endpoints together.
+enum class Direction : uint8_t {
+    STOP = 0,
+    FORWARD = 1,
+    BACKWARD = 2,
+    LEFT = 3,
+    RIGHT = 4,
+    FORWARD_RIGHT = 5,
+    FORWARD_LEFT = 6,
+    BACKWARD_RIGHT = 7,
+    BACKWARD_LEFT = 8,
+};
+
+// Highest valid enumerator; receivers validate incoming bytes against it.
+constexpr Direction DIRECTION_MAX = Direction::BACKWARD_LEFT;
 
 struct DriveCommand {
     Direction direction;

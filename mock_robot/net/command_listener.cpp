@@ -23,12 +23,16 @@ const char* directionName(proto::Direction direction) {
         case proto::Direction::BACKWARD: return "BACKWARD";
         case proto::Direction::LEFT: return "LEFT    ";
         case proto::Direction::RIGHT: return "RIGHT   ";
+        case proto::Direction::FORWARD_RIGHT: return "FWD-RGHT";
+        case proto::Direction::FORWARD_LEFT: return "FWD-LEFT";
+        case proto::Direction::BACKWARD_RIGHT: return "BCK-RGHT";
+        case proto::Direction::BACKWARD_LEFT: return "BCK-LEFT";
     }
     return "?       ";
 }
 
 bool validState(const proto::DesiredState& state) {
-    return state.drive_cmd.direction <= proto::Direction::RIGHT &&
+    return state.drive_cmd.direction <= proto::DIRECTION_MAX &&
            std::isfinite(state.drive_cmd.speed) && state.drive_cmd.speed >= 0.0f &&
            state.drive_cmd.speed <= 1.0f &&
            std::isfinite(state.camera.pitch) && std::fabs(state.camera.pitch) <= 1.0f &&

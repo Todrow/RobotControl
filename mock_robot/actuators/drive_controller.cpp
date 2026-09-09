@@ -118,11 +118,17 @@ WheelPower driveWheelPower(const proto::DriveCommand& command) noexcept {
     if (!std::isfinite(command.speed) || command.speed < 0.0f || command.speed > 1.0f)
         return {};
     const int percent = static_cast<int>(std::lround(command.speed * 100.0f));
+    const int inner = static_cast<int>(std::lround(command.speed * 100.0f * kDiagonalInnerFactor));
     switch (command.direction) {
         case proto::Direction::FORWARD: return {percent, percent};
         case proto::Direction::BACKWARD: return {-percent, -percent};
         case proto::Direction::LEFT: return {percent, -percent};
         case proto::Direction::RIGHT: return {-percent, percent};
+        // The wheel on the side of the turn is the inner one in all four cases.
+        case proto::Direction::FORWARD_RIGHT: return {inner, percent};
+        case proto::Direction::FORWARD_LEFT: return {percent, inner};
+        case proto::Direction::BACKWARD_RIGHT: return {-inner, -percent};
+        case proto::Direction::BACKWARD_LEFT: return {-percent, -inner};
         case proto::Direction::STOP: return {};
     }
     return {};

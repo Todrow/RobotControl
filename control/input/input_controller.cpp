@@ -8,14 +8,44 @@ namespace {
 
 constexpr float kMouseSensitivity = 0.004f;  // full -1..1 sweep in ~500 px
 
-proto::Direction wasdDirection(int vk) {
+enum WasdBit : unsigned {
+    kBitW = 1u << 0,
+    kBitA = 1u << 1,
+    kBitS = 1u << 2,
+    kBitD = 1u << 3,
+};
+
+unsigned wasdBit(int vk) {
     switch (vk) {
-        case vkey::W: return proto::Direction::FORWARD;
-        case vkey::S: return proto::Direction::BACKWARD;
-        case vkey::A: return proto::Direction::LEFT;
-        case vkey::D: return proto::Direction::RIGHT;
-        default: return proto::Direction::STOP;
+        case vkey::W: return kBitW;
+        case vkey::S: return kBitS;
+        case vkey::A: return kBitA;
+        case vkey::D: return kBitD;
+        default: return 0;
     }
+}
+
+// Each axis is decided independently and opposite keys cancel it, so a held
+// combination always maps to exactly one direction and no key order is kept.
+proto::Direction wasdDirection(unsigned held) {
+    const bool forward = (held & kBitW) && !(held & kBitS);
+    const bool backward = (held & kBitS) && !(held & kBitW);
+    const bool right = (held & kBitD) && !(held & kBitA);
+    const bool left = (held & kBitA) && !(held & kBitD);
+
+    if (forward) {
+        if (right) return proto::Direction::FORWARD_RIGHT;
+        if (left) return proto::Direction::FORWARD_LEFT;
+        return proto::Direction::FORWARD;
+    }
+    if (backward) {
+        if (right) return proto::Direction::BACKWARD_RIGHT;
+        if (left) return proto::Direction::BACKWARD_LEFT;
+        return proto::Direction::BACKWARD;
+    }
+    if (right) return proto::Direction::RIGHT;
+    if (left) return proto::Direction::LEFT;
+    return proto::Direction::STOP;
 }
 
 proto::Direction arrowDirection(int vk) {
@@ -28,7 +58,6 @@ proto::Direction arrowDirection(int vk) {
     }
 }
 
-bool isWasd(int vk) { return wasdDirection(vk) != proto::Direction::STOP; }
 bool isArrow(int vk) { return arrowDirection(vk) != proto::Direction::STOP; }
 
 }  // namespace
@@ -56,14 +85,24 @@ void InputController::stopDrive() {
     write();
 }
 
+void InputController::applyWasd() {
+    const proto::Direction direction = wasdDirection(held_wasd_);
+    // STOP here means nothing is held any more, or the held keys cancel out.
+    if (direction == proto::Direction::STOP)
+        stopDrive();
+    else
+        drive(direction, Source::Wasd);
+}
+
 bool InputController::keyPress(int vk, bool autorepeat) {
-    if (!isWasd(vk) && !isArrow(vk)) return false;
+    const unsigned bit = wasdBit(vk);
+    if (bit == 0 && !isArrow(vk)) return false;
     if (autorepeat) return true;  // holding a key must not re-toggle anything
 
-    if (isWasd(vk)) {
-        held_wasd_ = vk;
+    if (bit != 0) {
+        held_wasd_ |= bit;
         latched_arrow_ = 0;  // WASD took over; the next arrow press starts fresh
-        drive(wasdDirection(vk), Source::Wasd);
+        applyWasd();
         return true;
     }
 
@@ -79,14 +118,23 @@ bool InputController::keyPress(int vk, bool autorepeat) {
 
 bool InputController::keyRelease(int vk) {
     if (isArrow(vk)) return true;  // toggle mode: release does nothing
-    if (!isWasd(vk)) return false;
+    const unsigned bit = wasdBit(vk);
+    if (bit == 0) return false;
 
-    if (held_wasd_ == vk) {
-        held_wasd_ = 0;
+    // A release without a matching press (focus came back mid-keystroke) must
+    // not disturb an arrow that is currently latched.
+    if (held_wasd_ & bit) {
+        held_wasd_ &= ~bit;
         latched_arrow_ = 0;
-        stopDrive();
+        applyWasd();  // the remaining keys keep driving; none of them means STOP
     }
     return true;
+}
+
+void InputController::releaseKeys() {
+    held_wasd_ = 0;
+    latched_arrow_ = 0;
+    stopDrive();
 }
 
 void InputController::setPower(float power) {

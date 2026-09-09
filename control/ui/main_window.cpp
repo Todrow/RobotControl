@@ -370,6 +370,9 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event) {
             return true;
         case QEvent::FocusOut:
             setMouseCaptured(false);
+            // Key releases go to whoever took the focus, so held keys would
+            // stay held here and keep the robot driving.
+            input_.releaseKeys();
             break;
         default:
             break;

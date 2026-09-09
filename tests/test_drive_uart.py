@@ -206,11 +206,20 @@ class DriveUartTests(unittest.TestCase):
             (2, 0.5, b"R:-50%|L:-50%\n"),
             (3, 0.75, b"R:75%|L:-75%\n"),
             (4, 0.25, b"R:-25%|L:25%\n"),
+            # Diagonals: the wheel on the side of the turn keeps half the speed.
+            (5, 1.0, b"R:50%|L:100%\n"),
+            (6, 1.0, b"R:100%|L:50%\n"),
+            (7, 1.0, b"R:-50%|L:-100%\n"),
+            (8, 1.0, b"R:-100%|L:-50%\n"),
+            (5, 0.5, b"R:25%|L:50%\n"),
+            (8, 0.3, b"R:-30%|L:-15%\n"),
             (0, 1.0, STOP),
             (1, 0.0, STOP),
             (2, 0.0, STOP),
             (3, 0.0, STOP),
             (4, 0.0, STOP),
+            (5, 0.0, STOP),
+            (8, 0.0, STOP),
             (1, 0.005, b"R:1%|L:1%\n"),
             (1, 0.374, b"R:37%|L:37%\n"),
             (1, 0.375, b"R:38%|L:38%\n"),
@@ -308,7 +317,8 @@ class DriveUartTests(unittest.TestCase):
 
     def test_invalid_state_stops_and_rejects_connection(self):
         invalid = [
-            command(255, 0.5), command(1, -0.01), command(1, 1.01),
+            # 9 is one past BACKWARD_LEFT, the highest direction there is.
+            command(255, 0.5), command(9, 0.5), command(1, -0.01), command(1, 1.01),
             command(1, float("nan")), command(1, float("inf")),
             command(1, float("-inf")), command(1, 0.5, 1.01, 0),
             command(1, 0.5, 0, -1.01), command(1, 0.5, float("nan"), 0),

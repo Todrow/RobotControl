@@ -17,9 +17,12 @@ constexpr int Down = 0x28;
 }  // namespace vkey
 
 // Keyboard/mouse -> DesiredStateSlot.
-//   WASD    momentary: held down = drive, released = STOP.
+//   WASD    momentary: held down = drive, released = STOP. Keys combine, so
+//           W+D is FORWARD_RIGHT; opposite keys cancel their axis, so W+S
+//           drives neither forward nor back and W+A+D is a plain FORWARD.
 //           Speed is power * 0.5, or power * 1.0 while Shift is down.
 //   arrows  toggle:    press = drive at full power, press the same arrow = STOP
+//                      One arrow at a time; arrows do not form diagonals.
 //   mouse   relative:  dx/dy accumulate into yaw/pitch, clamped to -1..1
 // Both key sources write the same slot, so the newest write wins. Power lives
 // here, on the control side only -- the protocol carries the resulting speed.
@@ -39,20 +42,26 @@ public:
     float power() const { return power_; }
     void setShift(bool down);
 
+    // Forget every held key and stop. The window calls this when it loses
+    // focus: the matching key releases go to another window, and a key left
+    // stuck in held_wasd_ would keep driving and poison the next combination.
+    void releaseKeys();
+
 private:
     enum class Source { None, Wasd, Arrow };
 
     void drive(proto::Direction direction, Source source);
     void stopDrive();
-    void write();  // re-send the current direction at the current speed
+    void applyWasd();  // drive whatever the currently held WASD keys add up to
+    void write();      // re-send the current direction at the current speed
 
     DesiredStateSlot& slot_;
     float power_ = 1.0f;
     bool shift_ = false;
     proto::Direction direction_ = proto::Direction::STOP;
     Source source_ = Source::None;
-    int held_wasd_ = 0;      // WASD key currently held, 0 = none
-    int latched_arrow_ = 0;  // arrow currently driving, 0 = none
+    unsigned held_wasd_ = 0;  // bitmask of the WASD keys currently held
+    int latched_arrow_ = 0;   // arrow currently driving, 0 = none
     float pitch_ = 0.0f;
     float yaw_ = 0.0f;
 };
