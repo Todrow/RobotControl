@@ -68,6 +68,14 @@ else()
         "${LDLIDAR_SDK_DIR}/src/serial_interface_linux.cpp"
         "${LDLIDAR_SDK_DIR}/src/network_socket_interface_linux.cpp")
 endif()
+# glibc pulls linux/sched/types.h from bits/sched.h, but that kernel header uses
+# __u32/__s32 without including linux/types.h itself. When the two packages are
+# out of step it breaks every C++ translation unit that reaches <pthread.h>, so
+# force the missing header in front of both targets.
+if(NOT WIN32)
+    target_compile_options(ldlidar_sdk PRIVATE -include linux/types.h)
+    target_compile_options(mock_robot PRIVATE -include linux/types.h)
+endif()
 target_include_directories(ldlidar_sdk PUBLIC "${LDLIDAR_SDK_DIR}/include")
 target_link_libraries(ldlidar_sdk PUBLIC Threads::Threads)
 
