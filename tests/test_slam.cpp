@@ -143,6 +143,59 @@ int main() {
     check(grid.cell(outside_cx, outside_cy) == Cell::Unknown,
           "space behind a wall must stay unknown");
 
+    // No holes in plain sight. Beams diverge as they travel, so without filling
+    // the gaps between them the open floor ends up peppered with unknown cells --
+    // and every one of those is a frontier the explorer will drive at, which is
+    // what made the robot spin on the spot instead of going anywhere.
+    int holes = 0;
+    for (float y = -1.2f; y <= 1.2f; y += OccupancyGrid::kResolution) {
+        for (float x = -2.0f; x <= 0.8f; x += OccupancyGrid::kResolution) {
+            int cx = 0;
+            int cy = 0;
+            if (!OccupancyGrid::toCell(x, y, cx, cy)) continue;
+            if (grid.cell(cx, cy) == Cell::Unknown) ++holes;
+        }
+    }
+    std::printf("unknown cells inside open floor: %d\n", holes);
+    check(holes == 0, "open floor in full view must not be left unknown");
+
+    // Beam divergence only bites at range: at 1 degree spacing two beams are
+    // 5 cm apart at 3 m and 9 cm at 5 m, so a small room hides the problem
+    // entirely. This is the case that actually exercises the gap filling.
+    {
+        const std::vector<Segment> hall = {
+            {-7.0f, -5.0f, 7.0f, -5.0f}, {7.0f, -5.0f, 7.0f, 5.0f},
+            {7.0f, 5.0f, -7.0f, 5.0f},   {-7.0f, 5.0f, -7.0f, -5.0f},
+        };
+        Slam wide(options);
+        // A couple of looks, so free space clears the evidence threshold; the
+        // point being tested is the gaps between beams, not how fast a cell
+        // makes up its mind.
+        for (int look = 0; look < 3; ++look)
+            check(wide.update(scanAt(hall, Pose2D{})), "scans of the hall must be accepted");
+
+        int far_holes = 0;
+        int far_cells = 0;
+        for (float y = -4.0f; y <= 4.0f; y += OccupancyGrid::kResolution) {
+            for (float x = -4.0f; x <= 4.0f; x += OccupancyGrid::kResolution) {
+                const float distance = std::sqrt(x * x + y * y);
+                if (distance < 3.0f || distance > 4.5f) continue;
+                int cx = 0;
+                int cy = 0;
+                if (!OccupancyGrid::toCell(x, y, cx, cy)) continue;
+                ++far_cells;
+                if (wide.grid().cell(cx, cy) == Cell::Unknown) ++far_holes;
+            }
+        }
+        std::printf("holes in a 3-4.5 m ring after one scan: %d of %d cells\n", far_holes,
+                    far_cells);
+        check(far_cells > 1000, "the ring should cover a decent area");
+        // Without the interpolation this ring comes out about a third unknown.
+        // A handful of stragglers is fine -- they are single cells, and the
+        // explorer discards frontier clusters that small.
+        check(far_holes * 50 < far_cells, "gaps between diverging beams must be filled in");
+    }
+
     // A scan of nothing must not move the robot or touch the map.
     const Pose2D before = slam.pose();
     check(!slam.update(LaserScan{}), "an empty scan must be rejected");

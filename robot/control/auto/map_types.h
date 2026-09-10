@@ -35,21 +35,34 @@ enum class Cell : uint8_t {
 // cell, and exactly what Unknown means.
 class OccupancyGrid {
 public:
-    // 400 x 400 at 5 cm is 20 x 20 m, and a doorway is ~8 cells wide -- enough
-    // resolution for the planner to see the gap.
+    // 400 x 400 at 10 cm is 40 x 40 m. A 0.8 m doorway is still 8 cells wide,
+    // which is all the planner needs to see a gap, and every pass over the grid
+    // -- scan matching, inflation, the breadth-first search -- costs a quarter
+    // of what it did at 5 cm.
+    //
+    // Everything downstream that cares about real distances is written in metres
+    // and divided by this, so changing it does not silently rescale a threshold
+    // someone tuned in cells.
     static constexpr int kCells = 400;
-    static constexpr float kResolution = 0.05f;
+    static constexpr float kResolution = 0.10f;
 
-    // Beyond these the cell counts as decided. Deliberately asymmetric: a cell
-    // must be seen free a few times before the planner will drive through it,
-    // but one solid hit is enough to call it a wall.
-    static constexpr int8_t kOccupiedAt = 20;
-    static constexpr int8_t kFreeAt = -20;
+    // Beyond these the cell counts as decided. Still asymmetric in the safe
+    // direction -- one solid hit is enough to call something a wall, while free
+    // space needs two independent looks -- but no slower than that.
+    //
+    // These used to be +-20 against a -4 miss, which meant a cell had to be seen
+    // through FIVE times before the planner would treat it as floor. Everything
+    // the robot had only glanced at stayed Unknown, so the frontier never moved
+    // away from the robot and it kept finding somewhere unexplored right next to
+    // itself. Free space has to be recognised at roughly the rate the robot
+    // drives past it.
+    static constexpr int8_t kOccupiedAt = 12;
+    static constexpr int8_t kFreeAt = -12;
 
-    // Per-observation evidence. Hits count for more than misses, so a thin wall
-    // seen edge-on is not erased by the beams passing beside it.
+    // Per-observation evidence. A hit still counts for more than a miss, so a
+    // thin wall seen edge-on is not erased by the beams passing beside it.
     static constexpr int kHitDelta = 12;
-    static constexpr int kMissDelta = -4;
+    static constexpr int kMissDelta = -6;
 
     OccupancyGrid() : logodds_(static_cast<size_t>(kCells) * kCells, 0) {}
 

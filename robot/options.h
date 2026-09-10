@@ -43,10 +43,21 @@ struct ExploreOptions {
     // are removed from the planner's map, so a path is never planned through a
     // gap the robot cannot fit through. MEASURE THIS on the real robot.
     float robot_radius_m = 0.20f;
-    // Close enough to a frontier to call it visited and pick the next one.
+    // Close enough to the goal to call it reached and pick the next one.
     float goal_tolerance_m = 0.25f;
-    // How often to re-plan. Every cycle would be wasteful; too rare and the
-    // robot keeps driving at a goal the map has since shown to be a wall.
+    // How a candidate is scored: revealed area, in square metres, minus what it
+    // costs to get there. distance_penalty is square metres of map given up per
+    // metre driven; turn_penalty is the same per radian of pivot. Raising
+    // turn_penalty makes the robot stubborn about its current heading, which is
+    // the knob to reach for if it still dithers.
+    float distance_penalty = 0.15f;
+    float turn_penalty = 0.30f;
+    // Give up on a goal that has not been reached in this long and pick another.
+    // Without it a goal the robot cannot quite get to would hold it forever.
+    int goal_timeout_ms = 25000;
+    // How often to rebuild the route. The GOAL is not reconsidered this often --
+    // only the path to it -- so a longer period here just means the route is a
+    // little staler, not that the robot dithers.
     int replan_period_ms = 700;
     // Steering: how far off the path heading before turning in place instead of
     // driving an arc.
