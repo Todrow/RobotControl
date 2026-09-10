@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ssh-keygen -t ed25519 -C \"vika27vika25@gmail.com\" -f ~/.ssh/id_ed25519 -N \"\")",
+      "Bash(rm -f ~/.ssh/id_ed25519 ~/.ssh/id_ed25519.pub)",
+      "Bash(ssh-keygen -t ed25519 -C \"pinkol2005@gmail.com\" -f ~/.ssh/id_ed25519 -N \"\")",
+      "Bash(cp *)",
+      "Bash(sudo -u todrow ssh -o StrictHostKeyChecking=accept-new -T git@github.com)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(git remote *)",
+      "Bash(sudo -u todrow git -c user.name=\"Todrow\" -c user.email=\"pinkol2005@gmail.com\" pull --rebase origin main)",
+      "Bash(sudo -u todrow git push origin main)"
+    ]
+  }
+}
