@@ -17,10 +17,11 @@ struct LidarOptions {
     // hull into a sector whose verdict is Red; turning in place and reversing
     // away stay available. Clear it (--obstacle-no-enforce) for report-only.
     bool enforce = true;
-    ObstacleThresholds thresholds;
+    // The red/yellow bands are speed-scaled: see BrakingZone in obstacle_check.h.
+    BrakingZone zone;
 };
 
 inline bool validLidarOptions(const LidarOptions& options) noexcept {
     return options.period_ms > 0 && options.max_age_ms >= options.period_ms &&
-           validThresholds(options.thresholds);
+           validBrakingZone(options.zone);
 }

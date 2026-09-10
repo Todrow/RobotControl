@@ -1,0 +1,2 @@
+2026-09-10 19:50:02.359 [INFO] robot starting: cmd=5001 tlm=5002 video=5003
+2026-09-10 19:50:02.359 [INFO] Drive UART: disabled. Camera servos: disabled. Obstacle enforcement: ENABLED

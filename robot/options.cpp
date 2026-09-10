@@ -28,8 +28,11 @@ void printUsage(const char* executable) {
         "  --lidar-source SOURCE real | sim | none (default real: the STL-19P lidar)\n"
         "  --lidar-period MS     Sector publish period, 10..1000 (default 100)\n"
         "  --lidar-max-age MS    Samples older than this read as Unknown (default 500)\n"
-        "  --obstacle-red MM     Red below this distance, 10..10000 (default 100)\n"
-        "  --obstacle-yellow MM  Yellow below this distance, 10..10000 (default 150)\n"
+        "  --obstacle-red MM     Red zone at rest; grows with closing speed, 10..10000 (default 250)\n"
+        "  --obstacle-red-max MM Ceiling the speed-scaled red zone never exceeds, 10..10000 (default 700)\n"
+        "  --obstacle-yellow-margin MM  Yellow band width above the red zone, 10..10000 (default 80)\n"
+        "  --obstacle-lookahead MS  Seconds of closing motion kept as margin, in ms, 0..5000 (default 900)\n"
+        "  --obstacle-max-speed MMPS  Wheel speed at full throttle, for the commanded-speed floor, 50..5000 (default 500)\n"
         "  --obstacle-no-enforce Report Red sectors only; do not block drive commands\n"
         "  --no-slam             Do not build a map; disables exploring\n"
         "  --slam-min-score PCT  Match below this percent is rejected, 5..90 (default 22)\n"
@@ -56,7 +59,9 @@ void printUsage(const char* executable) {
         "reports 500 mm for anything further away; sim publishes placeholder distances,\n"
         "none leaves every sector Unknown. A Red sector blocks drive commands heading\n"
         "into it (STOP substituted) unless --obstacle-no-enforce is given; turning in\n"
-        "place and reversing away are never blocked.\n"
+        "place and reversing away are never blocked. The red zone is speed-scaled: it\n"
+        "widens as the gap to an obstacle closes (measured from the lidar and floored by\n"
+        "the commanded speed), so a fast approach trips STOP further out than a crawl.\n"
         "Servo pulse limits: 500 <= min < center < max <= 2500 microseconds; 50 Hz.\n"
         "Telemetry: Linux CPU/battery sensors, applied PWM camera setpoint; NaN if unavailable.\n"
         "Camera: rpicam-vid on Raspberry Pi; ksvideosrc on Windows.\n",
@@ -138,11 +143,22 @@ bool parseOptions(int argc, char* argv[], RobotOptions& options) {
             if (!integerOption(name, value, 10, 1000, options.lidar.period_ms)) return false;
         } else if (name == "--lidar-max-age") {
             if (!integerOption(name, value, 10, 10000, options.lidar.max_age_ms)) return false;
-        } else if (name == "--obstacle-red" || name == "--obstacle-yellow") {
+        } else if (name == "--obstacle-red") {
             if (!integerOption(name, value, 10, 10000, number)) return false;
-            auto& threshold = name == "--obstacle-red" ? options.lidar.thresholds.red_mm
-                                                       : options.lidar.thresholds.yellow_mm;
-            threshold = static_cast<float>(number);
+            options.lidar.zone.red_base_mm = static_cast<float>(number);
+        } else if (name == "--obstacle-red-max") {
+            if (!integerOption(name, value, 10, 10000, number)) return false;
+            options.lidar.zone.red_max_mm = static_cast<float>(number);
+        } else if (name == "--obstacle-yellow-margin") {
+            if (!integerOption(name, value, 10, 10000, number)) return false;
+            options.lidar.zone.yellow_margin_mm = static_cast<float>(number);
+        } else if (name == "--obstacle-lookahead") {
+            // Milliseconds on the command line; seconds in the policy.
+            if (!integerOption(name, value, 0, 5000, number)) return false;
+            options.lidar.zone.lookahead_s = static_cast<float>(number) / 1000.0f;
+        } else if (name == "--obstacle-max-speed") {
+            if (!integerOption(name, value, 50, 5000, number)) return false;
+            options.lidar.zone.max_speed_mm_s = static_cast<float>(number);
         } else if (name == "--slam-min-score" || name == "--explore-speed" ||
                    name == "--robot-radius") {
             // Taken as whole percent / centimetres so the existing integer
@@ -224,8 +240,8 @@ bool parseOptions(int argc, char* argv[], RobotOptions& options) {
     }
     if (!validLidarOptions(options.lidar)) {
         std::fprintf(stderr,
-                     "Lidar needs 0 < --obstacle-red < --obstacle-yellow and "
-                     "--lidar-max-age >= --lidar-period\n");
+                     "Lidar needs 0 < --obstacle-red <= --obstacle-red-max, a positive "
+                     "--obstacle-yellow-margin and --lidar-max-age >= --lidar-period\n");
         return false;
     }
     if (options.servos.pitch.channel == options.servos.yaw.channel) {

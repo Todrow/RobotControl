@@ -300,7 +300,8 @@ void runSimulated(const RobotOptions& options, RobotState& state) {
     float heading = 0.0f;
     auto next = net::Clock::now();
     while (state.running.load()) {
-        state.obstacles.update(simulatedDistances(phase), options.lidar.thresholds);
+        const float commanded_mm_s = state.drive_speed.load() * options.lidar.zone.max_speed_mm_s;
+        state.obstacles.update(simulatedDistances(phase), options.lidar.zone, commanded_mm_s);
         // The scan comes from the virtual room, not from the sector sweep above:
         // those placeholder distances are a display test and would make no sense
         // as a map.
@@ -328,18 +329,18 @@ void runLidarReader(const RobotOptions& options, RobotState& state) {
     }
 
     if (options.lidar.source == LidarSource::Simulated) {
-        std::printf("[lidar] SIMULATED distances; red <%.0f mm, yellow <%.0f mm, every %d ms\n",
-                    static_cast<double>(options.lidar.thresholds.red_mm),
-                    static_cast<double>(options.lidar.thresholds.yellow_mm),
+        std::printf("[lidar] SIMULATED distances; red %.0f..%.0f mm (speed-scaled), every %d ms\n",
+                    static_cast<double>(options.lidar.zone.red_base_mm),
+                    static_cast<double>(options.lidar.zone.red_max_mm),
                     options.lidar.period_ms);
         runSimulated(options, state);
         return;
     }
 
-    std::printf("[lidar] STL-19P, range %.0f mm; red <%.0f mm, yellow <%.0f mm, every %d ms\n",
+    std::printf("[lidar] STL-19P, range %.0f mm; red %.0f..%.0f mm (speed-scaled), every %d ms\n",
                 static_cast<double>(kMaxRangeMm),
-                static_cast<double>(options.lidar.thresholds.red_mm),
-                static_cast<double>(options.lidar.thresholds.yellow_mm),
+                static_cast<double>(options.lidar.zone.red_base_mm),
+                static_cast<double>(options.lidar.zone.red_max_mm),
                 options.lidar.period_ms);
 
     // A scan is a full revolution, so never wait less than one; the loop below
@@ -369,7 +370,9 @@ void runLidarReader(const RobotOptions& options, RobotState& state) {
 
         if (driver->GetLaserScanData(scan, read_timeout_ms) == ldlidar::LidarStatus::NORMAL) {
             read_failures = 0;
-            state.obstacles.update(readDistances(scan), options.lidar.thresholds);
+            const float commanded_mm_s =
+                state.drive_speed.load() * options.lidar.zone.max_speed_mm_s;
+            state.obstacles.update(readDistances(scan), options.lidar.zone, commanded_mm_s);
             // Second, independent product: the full revolution for SLAM. The
             // verdicts above are unaffected by anything that happens to it.
             state.scans.publish(buildScan(scan));

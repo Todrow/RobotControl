@@ -50,6 +50,7 @@ bool serviceRecovery(DisconnectRecovery& recovery, DriveController& drive,
         case RecoveryAction::Wait:
             return true;
         case RecoveryAction::Stop: {
+            state.drive_speed.store(0.0f);
             const bool okay = drive.stop();
             recovery.finish();
             std::printf("[cmd] disconnect recovery: STOP; waiting for reconnect\n");
@@ -57,8 +58,10 @@ bool serviceRecovery(DisconnectRecovery& recovery, DriveController& drive,
         }
         case RecoveryAction::Reverse: {
             const bool starting = !recovery.reversing();
+            const proto::DriveCommand reverse = recovery.reverseCommand();
+            state.drive_speed.store(reverse.speed);
             // Still gated: never back the robot into a Red sector behind it.
-            const bool okay = drive.apply(gated(recovery.reverseCommand(), options, state));
+            const bool okay = drive.apply(gated(reverse, options, state));
             recovery.reverseWritten(net::Clock::now());
             if (starting)
                 std::printf("[cmd] disconnect recovery: BACKWARD %.0f%% for %lld ms\n",
@@ -132,7 +135,10 @@ void runControlLoop(const RobotOptions& options, RobotState& state, VideoTarget&
                 // Driving itself with nobody connected. Same gate, same UART,
                 // same everything -- the only difference is where the command
                 // came from.
-                if (!drive.apply(gated(state.autonomy.command(kAutonomyMaxAge), options, state))) {
+                const proto::DriveCommand self = state.autonomy.command(kAutonomyMaxAge);
+                state.drive_speed.store(
+                    self.direction == proto::Direction::STOP ? 0.0f : self.speed);
+                if (!drive.apply(gated(self, options, state))) {
                     state.abort();
                     break;
                 }
@@ -199,6 +205,11 @@ void runControlLoop(const RobotOptions& options, RobotState& state, VideoTarget&
 
             const proto::DriveCommand requested =
                 driving_itself ? state.autonomy.command(kAutonomyMaxAge) : teleop.drive(intent);
+            // The braking-zone floor tracks what was asked for, not what the gate
+            // allowed: holding the stick into an obstacle keeps the zone wide so
+            // it cannot flicker Red/clear at the boundary.
+            state.drive_speed.store(
+                requested.direction == proto::Direction::STOP ? 0.0f : requested.speed);
             const proto::DriveCommand allowed = gated(requested, options, state);
             const bool blocked_now = allowed.direction != requested.direction;
             if (blocked_now != gate_blocking) {
@@ -229,6 +240,7 @@ void runControlLoop(const RobotOptions& options, RobotState& state, VideoTarget&
         // fight the explorer for the UART.
         state.clearAppliedCamera();
         const bool still_autonomous = state.mode.load() == ControlMode::Explore;
+        if (!still_autonomous) state.drive_speed.store(0.0f);
         const bool drive_stopped = still_autonomous || drive.stop();
         const auto stopped_at = net::Clock::now();
         video_target.clearPeer();
@@ -253,6 +265,7 @@ void runControlLoop(const RobotOptions& options, RobotState& state, VideoTarget&
     // Also release outputs if shutdown or an accept/UART error interrupts the
     // reverse pulse. This one is unconditional: the robot is coming down.
     state.clearAppliedCamera();
+    state.drive_speed.store(0.0f);
     const bool drive_stopped = drive.stop();
     const bool servos_released = servos.release();
     if (!drive_stopped || !servos_released) state.abort();
