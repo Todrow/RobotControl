@@ -49,12 +49,18 @@ private:
     Pose2D searchAround(const LaserScan& scan, const Pose2D& seed, float step_m, float step_rad,
                         int radius_xy, int radius_theta, bool coarse, float& best_score) const;
 
-    // Mean likelihood under the scan points, 0..1.
+    // Mean likelihood under the scan points, 0..1, measured only where the map
+    // knows something. Returns 0 when too little of the scan overlaps the known
+    // map to judge anything.
     float scoreAt(const LaserScan& scan, const Pose2D& pose, bool coarse) const;
 
     // Ray-cast every point: cells along the beam become free, the endpoint
-    // becomes occupied.
+    // becomes occupied, and the gaps between diverging beams are filled in.
     void integrate(const LaserScan& scan, const Pose2D& pose);
+
+    // Clear the cells between the robot and a world point, without ever placing
+    // a wall.
+    void traceFree(int rx, int ry, float wx, float wy);
 
     // Rebuild both search fields from the grid, after integration.
     void rebuildFields();
@@ -75,6 +81,13 @@ private:
     // 4x4 max-pooled copy of the field for the wide search: 16x less work, and
     // broad peaks a coarse step cannot fall between.
     std::vector<uint8_t> coarse_;
+
+    // Which cells the map has an opinion about at all (free or occupied, as
+    // opposed to never seen). Scoring counts a scan point only where the map can
+    // actually agree or disagree with it -- see scoreAt(). Same 4x4 pooling for
+    // the coarse pass, so a 20 cm search step does not fall into a hole.
+    std::vector<uint8_t> known_;
+    std::vector<uint8_t> coarse_known_;
 
     float score_ = 0.0f;
     bool started_ = false;

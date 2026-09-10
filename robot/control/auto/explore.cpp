@@ -15,10 +15,14 @@ constexpr float kPi = 3.14159265358979f;
 // point under its own nose; too long and it cuts corners into walls.
 constexpr float kLookaheadM = 0.35f;
 
-// Below this the match score means SLAM has lost track. Driving on a pose that
-// is wrong is worse than not driving: the robot would map garbage and plan
-// against it.
-constexpr float kTrustedScore = 0.30f;
+// How far from a frontier cell to look for somewhere the robot can actually
+// stand. Has to cover the inflation radius, or every doorway looks unreachable.
+constexpr int kGoalReach = 6;
+
+// Stop counting unknown space behind a frontier once this much has been found:
+// past here it is plainly a real place to go, and flooding an entire unexplored
+// floor to learn that would be wasted work.
+constexpr int kRevealedCap = 300;
 
 float wrapAngle(float radians) noexcept {
     while (radians > kPi) radians -= 2.0f * kPi;
@@ -28,29 +32,37 @@ float wrapAngle(float radians) noexcept {
 
 proto::DriveCommand stop() noexcept { return {proto::Direction::STOP, 0.0f}; }
 
+bool isFrontier(const OccupancyGrid& grid, int cx, int cy) {
+    if (grid.cell(cx, cy) != Cell::Free) return false;
+    for (int oy = -1; oy <= 1; ++oy)
+        for (int ox = -1; ox <= 1; ++ox)
+            if (grid.cell(cx + ox, cy + oy) == Cell::Unknown) return true;
+    return false;
+}
+
 }  // namespace
 
 void Explorer::reset() {
     path_.clear();
     next_point_ = 0;
+    have_goal_ = false;
     finished_ = false;
     planned_at_ = {};
+    goal_chosen_at_ = {};
 }
 
 void Explorer::buildDrivable(const OccupancyGrid& grid) {
     const int cells = OccupancyGrid::kCells;
     drivable_.assign(static_cast<size_t>(cells) * cells, 0);
 
-    // Pass one: free cells are candidates.
     for (int cy = 0; cy < cells; ++cy)
         for (int cx = 0; cx < cells; ++cx)
             if (grid.cell(cx, cy) == Cell::Free)
                 drivable_[static_cast<size_t>(cy) * cells + cx] = 1;
 
-    // Pass two: erase everything within the robot radius of a wall. Doing this
-    // on the map instead of inside the planner means the path is safe by
-    // construction -- there is no "did we remember to check clearance" question
-    // at any later step.
+    // Erase everything within the robot radius of a wall. Doing this on the map
+    // instead of inside the planner means the path is safe by construction --
+    // there is no "did we remember to check clearance" question at a later step.
     const int margin = static_cast<int>(options_.robot_radius_m / OccupancyGrid::kResolution + 0.5f);
     if (margin <= 0) return;
     std::vector<uint8_t> inflated = drivable_;
@@ -80,37 +92,25 @@ bool Explorer::planPath(const MapSnapshot& snapshot) {
     if (!OccupancyGrid::toCell(snapshot.pose.x, snapshot.pose.y, start_x, start_y)) return false;
 
     // The robot sits where it sits: if inflation erased its own cell (hugging a
-    // wall), refusing to plan would strand it. Let the search start there anyway
-    // and rely on the gate for safety on the way out.
+    // wall), refusing to plan would strand it. Start the search there anyway and
+    // rely on the gate for safety on the way out.
     std::vector<int> parent(static_cast<size_t>(cells) * cells, -1);
+    std::vector<int> steps(static_cast<size_t>(cells) * cells, 0);
     std::deque<int> queue;
     const int start = start_y * cells + start_x;
     parent[static_cast<size_t>(start)] = start;
     queue.push_back(start);
 
-    int goal = -1;
-    while (!queue.empty() && goal < 0) {
+    // One full sweep, recording every reachable cell. Frontiers are collected as
+    // we go; the choice between them happens afterwards, when their sizes are
+    // known -- a decision that cannot be made while still walking.
+    std::vector<int> frontier_cells;
+    while (!queue.empty()) {
         const int current = queue.front();
         queue.pop_front();
         const int cx = current % cells;
         const int cy = current / cells;
-
-        // A frontier: known-free here, unknown next door. Reached breadth-first,
-        // so the first one found is the closest by travel distance.
-        bool frontier = false;
-        for (int oy = -1; oy <= 1 && !frontier; ++oy)
-            for (int ox = -1; ox <= 1 && !frontier; ++ox)
-                if (snapshot.grid.cell(cx + ox, cy + oy) == Cell::Unknown) frontier = true;
-        // Ignore frontiers we are already standing on; the robot must actually
-        // travel somewhere or it would declare victory on the spot.
-        if (frontier && current != start) {
-            const float dx = static_cast<float>(cx - start_x) * OccupancyGrid::kResolution;
-            const float dy = static_cast<float>(cy - start_y) * OccupancyGrid::kResolution;
-            if (std::sqrt(dx * dx + dy * dy) > options_.goal_tolerance_m) {
-                goal = current;
-                break;
-            }
-        }
+        if (isFrontier(snapshot.grid, cx, cy)) frontier_cells.push_back(current);
 
         for (int oy = -1; oy <= 1; ++oy) {
             for (int ox = -1; ox <= 1; ++ox) {
@@ -122,14 +122,171 @@ bool Explorer::planPath(const MapSnapshot& snapshot) {
                 if (parent[static_cast<size_t>(next)] >= 0) continue;
                 if (!drivable_[static_cast<size_t>(next)]) continue;
                 parent[static_cast<size_t>(next)] = current;
+                steps[static_cast<size_t>(next)] = steps[static_cast<size_t>(current)] + 1;
                 queue.push_back(next);
             }
         }
     }
 
+    const auto reached = [&](int node) { return parent[static_cast<size_t>(node)] >= 0; };
+    const auto travel = [&](int node) {
+        return static_cast<float>(steps[static_cast<size_t>(node)]) * OccupancyGrid::kResolution;
+    };
+
+    int goal = -1;
+
+    // Keep the previous goal if it is still worth going to. Re-deciding every
+    // cycle is what makes a robot turn one way, then the other, and never arrive.
+    if (have_goal_) {
+        int gx = 0;
+        int gy = 0;
+        const bool timed_out =
+            std::chrono::steady_clock::now() - goal_chosen_at_ >
+            std::chrono::milliseconds(options_.goal_timeout_ms);
+        if (!timed_out && OccupancyGrid::toCell(goal_.x, goal_.y, gx, gy)) {
+            const int node = gy * cells + gx;
+            if (reached(node) && isFrontier(snapshot.grid, gx, gy) &&
+                travel(node) > options_.goal_tolerance_m)
+                goal = node;
+        }
+    }
+
+    if (goal < 0) {
+        // Group the frontier cells, so a single stray unknown cell cannot become
+        // a destination. Flood fill over the frontier set itself.
+        std::vector<uint8_t> is_frontier(static_cast<size_t>(cells) * cells, 0);
+        for (int node : frontier_cells) is_frontier[static_cast<size_t>(node)] = 1;
+
+        std::vector<uint8_t> seen(static_cast<size_t>(cells) * cells, 0);
+        std::vector<uint8_t> counted_unknown(static_cast<size_t>(cells) * cells, 0);
+        int best = -1;
+        float best_travel = 0.0f;
+        int fallback = -1;
+        float fallback_travel = 0.0f;
+
+        for (int seed : frontier_cells) {
+            if (seen[static_cast<size_t>(seed)]) continue;
+            std::deque<int> group_queue{seed};
+            seen[static_cast<size_t>(seed)] = 1;
+            // What matters is how much unseen space this frontier opens up, not
+            // how many cells its border is made of. A single unknown cell in the
+            // middle of the floor is ringed by eight border cells, which sails
+            // past any threshold counted the naive way -- and that artefact is
+            // exactly what the robot kept driving at.
+            std::deque<int> unknown_queue;
+            int revealed = 0;
+            int nearest = -1;
+            float nearest_travel = 0.0f;
+
+            // The frontier cell itself is usually NOT somewhere the robot can
+            // stand: it sits against the unknown, and inflation has cleared a
+            // robot radius around every wall nearby. So the goal is the nearest
+            // reachable cell within arm's reach of the frontier. Without this the
+            // planner rejects every real doorway and concludes the room is fully
+            // explored while staring straight at the way out.
+            const auto consider = [&](int candidate) {
+                if (!reached(candidate)) return;
+                const float distance = travel(candidate);
+                if (nearest < 0 || distance < nearest_travel) {
+                    nearest = candidate;
+                    nearest_travel = distance;
+                }
+            };
+
+            while (!group_queue.empty()) {
+                const int node = group_queue.front();
+                group_queue.pop_front();
+                {
+                    const int fx = node % cells;
+                    const int fy = node / cells;
+                    for (int oy = -kGoalReach; oy <= kGoalReach; ++oy) {
+                        for (int ox = -kGoalReach; ox <= kGoalReach; ++ox) {
+                            const int nx = fx + ox;
+                            const int ny = fy + oy;
+                            if (!OccupancyGrid::inside(nx, ny)) continue;
+                            consider(ny * cells + nx);
+                        }
+                    }
+                }
+                const int cx = node % cells;
+                const int cy = node / cells;
+                for (int oy = -1; oy <= 1; ++oy) {
+                    for (int ox = -1; ox <= 1; ++ox) {
+                        const int nx = cx + ox;
+                        const int ny = cy + oy;
+                        if (!OccupancyGrid::inside(nx, ny)) continue;
+                        const int next = ny * cells + nx;
+                        if (snapshot.grid.cell(nx, ny) == Cell::Unknown) {
+                            if (!counted_unknown[static_cast<size_t>(next)]) {
+                                counted_unknown[static_cast<size_t>(next)] = 1;
+                                unknown_queue.push_back(next);
+                                ++revealed;
+                            }
+                            continue;
+                        }
+                        if (seen[static_cast<size_t>(next)] || !is_frontier[static_cast<size_t>(next)])
+                            continue;
+                        seen[static_cast<size_t>(next)] = 1;
+                        group_queue.push_back(next);
+                    }
+                }
+            }
+
+            // How much is actually back there? Flood the unknown region behind
+            // the frontier, stopping once it is obviously worth going to. A
+            // doorway opens onto a whole room and hits the cap immediately; a
+            // gap between two lidar beams is one or two cells and stops there.
+            // Counting only the cells touching the frontier cannot tell those
+            // apart -- a 0.6 m doorway touches eleven, which is the same order
+            // as a handful of artefacts side by side.
+            while (!unknown_queue.empty() && revealed < kRevealedCap) {
+                const int node = unknown_queue.front();
+                unknown_queue.pop_front();
+                const int cx = node % cells;
+                const int cy = node / cells;
+                for (int oy = -1; oy <= 1; ++oy) {
+                    for (int ox = -1; ox <= 1; ++ox) {
+                        const int nx = cx + ox;
+                        const int ny = cy + oy;
+                        if (!OccupancyGrid::inside(nx, ny)) continue;
+                        if (snapshot.grid.cell(nx, ny) != Cell::Unknown) continue;
+                        const int next = ny * cells + nx;
+                        if (counted_unknown[static_cast<size_t>(next)]) continue;
+                        counted_unknown[static_cast<size_t>(next)] = 1;
+                        unknown_queue.push_back(next);
+                        ++revealed;
+                    }
+                }
+            }
+
+            if (revealed < kMinRevealedCells || nearest < 0) continue;
+            if (nearest_travel < options_.goal_tolerance_m) continue;
+            if (nearest_travel >= options_.min_goal_distance_m) {
+                if (best < 0 || nearest_travel < best_travel) {
+                    best = nearest;
+                    best_travel = nearest_travel;
+                }
+            } else if (fallback < 0 || nearest_travel > fallback_travel) {
+                // Too close to be a good goal, but better than declaring the job
+                // done: kept only if nothing further away is reachable.
+                fallback = nearest;
+                fallback_travel = nearest_travel;
+            }
+        }
+        goal = best >= 0 ? best : fallback;
+        if (goal >= 0) {
+            OccupancyGrid::toWorld(goal % cells, goal / cells, goal_.x, goal_.y);
+            have_goal_ = true;
+            goal_chosen_at_ = std::chrono::steady_clock::now();
+        }
+    }
+
     path_.clear();
     next_point_ = 0;
-    if (goal < 0) return false;
+    if (goal < 0) {
+        have_goal_ = false;
+        return false;
+    }
 
     for (int node = goal; node != start; node = parent[static_cast<size_t>(node)]) {
         float wx = 0.0f;
@@ -150,9 +307,11 @@ proto::DriveCommand Explorer::followPath(const Pose2D& pose) {
         ++next_point_;
     }
     if (next_point_ >= path_.size()) {
-        // Arrived: the next cycle re-plans toward the next frontier.
+        // Arrived. Drop the goal too, so the next cycle picks a fresh one rather
+        // than re-planning to a place already reached.
         path_.clear();
         next_point_ = 0;
+        have_goal_ = false;
         return stop();
     }
 
@@ -173,9 +332,9 @@ proto::DriveCommand Explorer::followPath(const Pose2D& pose) {
 }
 
 proto::DriveCommand Explorer::step(const MapSnapshot& snapshot) {
-    if (snapshot.match_score < kTrustedScore) {
-        // SLAM is lost. Stop and let it re-acquire; the pose it would give us is
-        // not worth planning against.
+    if (snapshot.match_score < min_match_score_) {
+        // SLAM does not trust its own pose, so neither do we. Stop and let it
+        // re-acquire rather than plan against a position that may be wrong.
         path_.clear();
         next_point_ = 0;
         return stop();
@@ -187,7 +346,7 @@ proto::DriveCommand Explorer::step(const MapSnapshot& snapshot) {
     if (due) {
         planned_at_ = now;
         if (!planPath(snapshot)) {
-            // Nothing reachable left to see.
+            // Nothing reachable left worth seeing.
             finished_ = true;
             return stop();
         }
@@ -197,7 +356,7 @@ proto::DriveCommand Explorer::step(const MapSnapshot& snapshot) {
 }
 
 void runExplorer(const RobotOptions& options, RobotState& state) {
-    Explorer explorer(options.explore);
+    Explorer explorer(options.explore, options.slam.min_score);
     bool was_exploring = false;
     bool announced_finish = false;
 

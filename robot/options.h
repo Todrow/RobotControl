@@ -43,10 +43,19 @@ struct ExploreOptions {
     // are removed from the planner's map, so a path is never planned through a
     // gap the robot cannot fit through. MEASURE THIS on the real robot.
     float robot_radius_m = 0.20f;
-    // Close enough to a frontier to call it visited and pick the next one.
+    // Close enough to the goal to call it reached and pick the next one.
     float goal_tolerance_m = 0.25f;
-    // How often to re-plan. Every cycle would be wasteful; too rare and the
-    // robot keeps driving at a goal the map has since shown to be a wall.
+    // Frontiers nearer than this are ignored while anything further exists. A
+    // goal half a metre away is reached before the robot has finished turning
+    // towards it, so the robot spends its time turning rather than travelling.
+    // Only if nothing further is reachable does it settle for a close one.
+    float min_goal_distance_m = 1.2f;
+    // Give up on a goal that has not been reached in this long and pick another.
+    // Without it a goal the robot cannot quite get to would hold it forever.
+    int goal_timeout_ms = 25000;
+    // How often to rebuild the route. The GOAL is not reconsidered this often --
+    // only the path to it -- so a longer period here just means the route is a
+    // little staler, not that the robot dithers.
     int replan_period_ms = 700;
     // Steering: how far off the path heading before turning in place instead of
     // driving an arc.
