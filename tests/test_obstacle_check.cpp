@@ -1,6 +1,6 @@
 // Threshold policy tests: measured millimetres in, three-state verdict out.
 // Pure functions, so no lidar, no sockets and no Raspberry Pi are involved.
-//   c++ -std=c++17 -Icommon -Imock_robot tests/test_obstacle_check.cpp -o /tmp/t && /tmp/t
+//   c++ -std=c++17 -Icommon -Irobot tests/test_obstacle_check.cpp -o /tmp/t && /tmp/t
 #include <cmath>
 #include <cstdio>
 #include <limits>
@@ -8,7 +8,7 @@
 #include <string>
 
 #include "protocol.h"
-#include "utils/obstacle_check.h"
+#include "control/safety/obstacle_check.h"
 
 namespace {
 

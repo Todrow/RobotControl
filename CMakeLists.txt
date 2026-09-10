@@ -7,7 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Raspberry Pi only needs the console server. The operator UI stays on Windows.
 option(BUILD_CONTROL "Build the Windows Qt control application" ${WIN32})
-option(BUILD_MOCK_ROBOT "Build the Raspberry Pi / Windows robot server" ON)
+option(BUILD_ROBOT "Build the Raspberry Pi / Windows robot server" ON)
 if(BUILD_CONTROL AND NOT WIN32)
     message(FATAL_ERROR "control is a Windows application. Use -DBUILD_CONTROL=OFF on Raspberry Pi.")
 endif()
@@ -18,7 +18,7 @@ foreach(cfg ${CMAKE_CONFIGURATION_TYPES})
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${cfg_upper} "${CMAKE_BINARY_DIR}")
 endforeach()
 
-if(BUILD_CONTROL OR BUILD_MOCK_ROBOT)
+if(BUILD_CONTROL OR BUILD_ROBOT)
     find_package(Threads REQUIRED)
     include(cmake/GStreamer.cmake)
     robot_find_gstreamer(${BUILD_CONTROL})
@@ -55,7 +55,7 @@ if(BUILD_CONTROL)
     endif()
 endif()
 
-if(BUILD_MOCK_ROBOT)
-    # Keep CMake's subdirectory separate from the Linux executable mock_robot.
-    add_subdirectory(mock_robot mock_robot-build)
+if(BUILD_ROBOT)
+    # Keep CMake's subdirectory separate from the Linux executable robot.
+    add_subdirectory(robot robot-build)
 endif()

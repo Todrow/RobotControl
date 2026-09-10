@@ -1,7 +1,7 @@
 // Standalone Linux test; no Raspberry Pi sensors are required.
-// g++ -std=c++17 -Wall -Wextra -Wpedantic -Icommon -Imock_robot tests/test_system_telemetry.cpp mock_robot/system_telemetry.cpp -o /tmp/test_system_telemetry
+// g++ -std=c++17 -Wall -Wextra -Wpedantic -Icommon -Irobot tests/test_system_telemetry.cpp robot/systems/rpi/health/system_telemetry.cpp -o /tmp/test_system_telemetry
 #include "protocol.h"
-#include "system_telemetry.h"
+#include "systems/rpi/health/system_telemetry.h"
 
 #include <array>
 #include <chrono>

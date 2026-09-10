@@ -1,12 +1,12 @@
 // Drive-gate policy tests: a per-sector verdict and a Direction in, the command
 // the drive should actually run out. Pure functions, so no lidar, no sockets and
 // no Raspberry Pi are involved.
-//   c++ -std=c++17 -Wall -Wextra -Wpedantic -Icommon -Imock_robot tests/test_drive_gate.cpp -o /tmp/t && /tmp/t
+//   c++ -std=c++17 -Wall -Wextra -Wpedantic -Icommon -Irobot tests/test_drive_gate.cpp -o /tmp/t && /tmp/t
 #include <cstdio>
 #include <string>
 
 #include "protocol.h"
-#include "utils/drive_gate.h"
+#include "control/safety/drive_gate.h"
 
 namespace {
 
