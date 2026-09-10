@@ -56,7 +56,7 @@ constexpr bool kMirrorAngle = false;
 // interesting: it is reported as exactly kMaxRangeMm, and so is a zone with no
 // echo at all, so every sector always carries a number.
 constexpr float kMinValidMm = 20.0f;
-constexpr float kMaxRangeMm = 500.0f;
+constexpr float kMaxRangeMm = 10000.0f;
 
 // SLAM needs the opposite of the sector clamp above: everything the device can
 // actually see. At 500 mm no map would ever form -- the robot would be walking
