@@ -2,7 +2,7 @@
 	"InstallScripts" : 
 	[
 		"C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/cmake_install.cmake",
-		"C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/mock_robot-build/cmake_install.cmake"
+		"C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/robot-build/cmake_install.cmake"
 	],
 	"Parallel" : false
 }

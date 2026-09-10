@@ -1,15 +1,8 @@
-C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/control_autogen/KNR4TIJSV7/moc_main_window.cpp: C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/control/ui/main_window.h \
+C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/control_autogen/KNR4TIJSV7/moc_map_view.cpp: C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/control/ui/map_view.h \
   C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/control_autogen/moc_predefs.h \
   C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/common/map_protocol.h \
-  C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/common/protocol.h \
-  C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/control/input/input_controller.h \
-  C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/control/net/command_sender.h \
-  C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/control/net/connection_manager.h \
   C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/control/net/map_client.h \
   C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/control/net/tcp_connection.h \
-  C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/control/net/telemetry_receiver.h \
-  C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/control/state/desired_state_slot.h \
-  C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/control/video/video_receiver.h \
   C:/msys64/ucrt64/include/_mingw.h \
   C:/msys64/ucrt64/include/_mingw_mac.h \
   C:/msys64/ucrt64/include/_mingw_off_t.h \
@@ -40,7 +33,6 @@ C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/control_aut
   C:/msys64/ucrt64/include/c++/16.2.0/bits/cpp_type_traits.h \
   C:/msys64/ucrt64/include/c++/16.2.0/bits/cxxabi_forced.h \
   C:/msys64/ucrt64/include/c++/16.2.0/bits/cxxabi_init_exception.h \
-  C:/msys64/ucrt64/include/c++/16.2.0/bits/deque.tcc \
   C:/msys64/ucrt64/include/c++/16.2.0/bits/enable_special_members.h \
   C:/msys64/ucrt64/include/c++/16.2.0/bits/erase_if.h \
   C:/msys64/ucrt64/include/c++/16.2.0/bits/exception.h \
@@ -88,7 +80,6 @@ C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/control_aut
   C:/msys64/ucrt64/include/c++/16.2.0/bits/stl_algobase.h \
   C:/msys64/ucrt64/include/c++/16.2.0/bits/stl_bvector.h \
   C:/msys64/ucrt64/include/c++/16.2.0/bits/stl_construct.h \
-  C:/msys64/ucrt64/include/c++/16.2.0/bits/stl_deque.h \
   C:/msys64/ucrt64/include/c++/16.2.0/bits/stl_function.h \
   C:/msys64/ucrt64/include/c++/16.2.0/bits/stl_heap.h \
   C:/msys64/ucrt64/include/c++/16.2.0/bits/stl_iterator.h \
@@ -141,7 +132,6 @@ C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/control_aut
   C:/msys64/ucrt64/include/c++/16.2.0/cwchar \
   C:/msys64/ucrt64/include/c++/16.2.0/debug/assertions.h \
   C:/msys64/ucrt64/include/c++/16.2.0/debug/debug.h \
-  C:/msys64/ucrt64/include/c++/16.2.0/deque \
   C:/msys64/ucrt64/include/c++/16.2.0/exception \
   C:/msys64/ucrt64/include/c++/16.2.0/ext/aligned_buffer.h \
   C:/msys64/ucrt64/include/c++/16.2.0/ext/alloc_traits.h \
@@ -211,194 +201,6 @@ C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/control_aut
   C:/msys64/ucrt64/include/crtdefs.h \
   C:/msys64/ucrt64/include/ctype.h \
   C:/msys64/ucrt64/include/errno.h \
-  C:/msys64/ucrt64/include/float.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib-object.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/deprecated/gallocator.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/deprecated/gcache.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/deprecated/gcompletion.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/deprecated/gmain.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/deprecated/grel.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/deprecated/gthread.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/galloca.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/garray.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gasyncqueue.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gatomic.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gbacktrace.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gbase64.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gbitlock.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gbookmarkfile.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gbytes.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gcharset.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gchecksum.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gconvert.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gdataset.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gdate.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gdatetime.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gdir.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/genviron.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gerror.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gfileutils.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/ggettext.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/ghash.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/ghmac.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/ghook.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/ghostutils.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/giochannel.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gkeyfile.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/glib-autocleanups.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/glib-typeof.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/glib-visibility.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/glist.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gmacros.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gmain.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gmappedfile.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gmarkup.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gmem.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gmessages.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gnode.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/goption.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gpathbuf.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gpattern.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gpoll.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gprimes.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gqsort.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gquark.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gqueue.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/grand.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/grcbox.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/grefcount.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/grefstring.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gregex.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gscanner.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gsequence.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gshell.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gslice.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gslist.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gspawn.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gstrfuncs.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gstring.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gstringchunk.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gstrvbuilder.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gtestutils.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gthread.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gthreadpool.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gtimer.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gtimezone.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gtrashstack.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gtree.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gtypes.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gunicode.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/guri.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gutils.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/guuid.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gvariant.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gvarianttype.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gversion.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gversionmacros.h \
-  C:/msys64/ucrt64/include/glib-2.0/glib/gwin32.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/gbinding.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/gbindinggroup.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/gboxed.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/gclosure.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/genums.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/glib-enumtypes.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/glib-types.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/gmarshal.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/gobject-autocleanups.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/gobject-visibility.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/gobject.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/gparam.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/gparamspecs.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/gsignal.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/gsignalgroup.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/gsourceclosure.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/gtype.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/gtypemodule.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/gtypeplugin.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/gvalue.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/gvaluearray.h \
-  C:/msys64/ucrt64/include/glib-2.0/gobject/gvaluetypes.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/glib-compat.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gst.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstallocator.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstatomicqueue.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstbin.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstbuffer.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstbufferlist.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstbufferpool.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstbus.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstbytearrayinterface.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstcaps.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstcapsfeatures.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstchildproxy.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstclock.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstcompat.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstconfig.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstcontext.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstcontrolbinding.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstcontrolsource.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstcpuid.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstdatetime.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstdebugutils.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstdevice.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstdevicemonitor.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstdeviceprovider.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstdeviceproviderfactory.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstdynamictypefactory.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstelement.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstelementfactory.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstelementmetadata.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstenumtypes.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gsterror.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstevent.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstformat.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstghostpad.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstidstr.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstinfo.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstiterator.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstmacros.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstmemory.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstmessage.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstmeta.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstmetafactory.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstminiobject.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstobject.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstpad.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstpadtemplate.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstparamspecs.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstparse.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstpipeline.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstplugin.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstpluginfeature.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstpoll.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstpreset.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstpromise.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstprotection.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstquery.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstregistry.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstsample.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstsegment.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gststreamcollection.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gststreams.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gststructure.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstsystemclock.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gsttaglist.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gsttagsetter.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gsttask.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gsttaskpool.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gsttoc.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gsttocsetter.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gsttracer.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gsttracerfactory.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gsttracerrecord.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gsttypefind.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gsttypefindfactory.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gsturi.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstutils.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstvalue.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstvecdeque.h \
-  C:/msys64/ucrt64/include/gstreamer-1.0/gst/gstversion.h \
   C:/msys64/ucrt64/include/limits.h \
   C:/msys64/ucrt64/include/locale.h \
   C:/msys64/ucrt64/include/malloc.h \
@@ -408,11 +210,8 @@ C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/control_aut
   C:/msys64/ucrt64/include/pthread_signal.h \
   C:/msys64/ucrt64/include/pthread_time.h \
   C:/msys64/ucrt64/include/pthread_unistd.h \
-  C:/msys64/ucrt64/include/qt6/QtCore/QElapsedTimer \
   C:/msys64/ucrt64/include/qt6/QtCore/QMetaType \
   C:/msys64/ucrt64/include/qt6/QtCore/QObject \
-  C:/msys64/ucrt64/include/qt6/QtCore/QPoint \
-  C:/msys64/ucrt64/include/qt6/QtCore/QString \
   C:/msys64/ucrt64/include/qt6/QtCore/q17memory.h \
   C:/msys64/ucrt64/include/qt6/QtCore/q20bit.h \
   C:/msys64/ucrt64/include/qt6/QtCore/q20functional.h \
@@ -452,7 +251,6 @@ C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/control_aut
   C:/msys64/ucrt64/include/qt6/QtCore/qdarwinhelpers.h \
   C:/msys64/ucrt64/include/qt6/QtCore/qdatastream.h \
   C:/msys64/ucrt64/include/qt6/QtCore/qdebug.h \
-  C:/msys64/ucrt64/include/qt6/QtCore/qelapsedtimer.h \
   C:/msys64/ucrt64/include/qt6/QtCore/qendian.h \
   C:/msys64/ucrt64/include/qt6/QtCore/qexceptionhandling.h \
   C:/msys64/ucrt64/include/qt6/QtCore/qflags.h \
@@ -568,11 +366,8 @@ C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/control_aut
   C:/msys64/ucrt64/include/qt6/QtGui/qtransform.h \
   C:/msys64/ucrt64/include/qt6/QtGui/qwindowdefs.h \
   C:/msys64/ucrt64/include/qt6/QtGui/qwindowdefs_win.h \
-  C:/msys64/ucrt64/include/qt6/QtWidgets/QMainWindow \
   C:/msys64/ucrt64/include/qt6/QtWidgets/QWidget \
-  C:/msys64/ucrt64/include/qt6/QtWidgets/qmainwindow.h \
   C:/msys64/ucrt64/include/qt6/QtWidgets/qsizepolicy.h \
-  C:/msys64/ucrt64/include/qt6/QtWidgets/qtabwidget.h \
   C:/msys64/ucrt64/include/qt6/QtWidgets/qtwidgets-config.h \
   C:/msys64/ucrt64/include/qt6/QtWidgets/qtwidgetsexports.h \
   C:/msys64/ucrt64/include/qt6/QtWidgets/qtwidgetsglobal.h \
@@ -598,5 +393,4 @@ C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/control_aut
   C:/msys64/ucrt64/include/vadefs.h \
   C:/msys64/ucrt64/include/wchar.h \
   C:/msys64/ucrt64/lib/gcc/x86_64-w64-mingw32/16.2.0/include/mm_malloc.h \
-  C:/msys64/ucrt64/lib/gcc/x86_64-w64-mingw32/16.2.0/include/stdbool.h \
-  C:/msys64/ucrt64/lib/glib-2.0/include/glibconfig.h
+  C:/msys64/ucrt64/lib/gcc/x86_64-w64-mingw32/16.2.0/include/stdbool.h
