@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Linux integration tests: TCP DesiredState -> actual termios UART -> PTY.
 
+Drives the real control loop end to end: CommandLink accepts the frame,
+supervisor validates it, Teleop passes it on, the safety gate has its say and
+DriveController writes the line the ESP32 would read.
+
 Run from any directory with Python 3 and a C++17 compiler:
     python3 tests/test_drive_uart.py
 
@@ -54,11 +58,16 @@ class DriveUartTests(unittest.TestCase):
         subprocess.run(
             compiler + [
                 "-std=c++17", "-O2", "-Wall", "-Wextra", "-Wpedantic", "-pthread",
-                "-I" + str(ROOT / "common"), "-I" + str(ROOT / "mock_robot"),
+                "-I" + str(ROOT / "common"), "-I" + str(ROOT / "robot"),
                 str(ROOT / "tests" / "drive_uart_harness.cpp"),
-                str(ROOT / "mock_robot" / "net" / "command_listener.cpp"),
-                str(ROOT / "mock_robot" / "actuators" / "servo_controller.cpp"),
-                str(ROOT / "mock_robot" / "actuators" / "drive_controller.cpp"),
+                # Everything between the socket and the UART, minus the systems
+                # this test does not need (camera, lidar, telemetry).
+                str(ROOT / "robot" / "control_loop.cpp"),
+                str(ROOT / "robot" / "control" / "manual" / "teleop.cpp"),
+                str(ROOT / "robot" / "supervisor" / "recovery.cpp"),
+                str(ROOT / "robot" / "systems" / "rpi" / "link" / "command_link.cpp"),
+                str(ROOT / "robot" / "systems" / "rpi" / "servos" / "servo_controller.cpp"),
+                str(ROOT / "robot" / "systems" / "rpi" / "drive" / "drive_controller.cpp"),
                 "-o", str(cls.executable),
             ],
             check=True,

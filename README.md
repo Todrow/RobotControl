@@ -1,17 +1,66 @@
 # Robot Control: Raspberry Pi 4 ↔ Windows
 
-- **mock_robot** — консольный сервер на Raspberry Pi OS (Linux) или Windows: принимает команды по TCP, отправляет телеметрию и видео; на Raspberry Pi управляет двумя сервоприводами камеры через аппаратный PWM и передаёт команды колёс на ESP32 через GPIO UART.
+- **robot** — консольный сервер на Raspberry Pi OS (Linux) или Windows: принимает команды по TCP, отправляет телеметрию и видео; на Raspberry Pi управляет двумя сервоприводами камеры через аппаратный PWM и передаёт команды колёс на ESP32 через GPIO UART.
 - **control** — существующее приложение Qt6 для Windows: управление клавиатурой/мышью, видео и HUD.
 
-На Raspberry Pi используется камера **IMX219, индекс 0**, через `rpicam-vid`. По умолчанию: **1280×720, 30 fps, H.264, 2 Мбит/с**. Эти параметры относятся к выходному видео; режим сенсора из списка `--list-cameras` выбирает стек камеры. В этой реализации выход ограничен 1920×1080 и 30 fps.
+На Raspberry Pi используется камера **IMX219, индекс 0**, через `rpicam-vid`. По умолчанию: **1280×720, 30 fps, H.264, 4 Мбит/с**. Эти параметры относятся к выходному видео; режим сенсора из списка `--list-cameras` выбирает стек камеры. В этой реализации выход ограничен 1920×1080 и 30 fps.
 
 Передача команд колёс включается параметром `--drive-uart`; без него команды движения только выводятся в консоль. Телеметрия использует доступные датчики Linux; отсутствующие показания передаются как `NaN`. Сервоприводы камеры работают при запуске с `--servos` после настройки PWM, описанной ниже.
+
+## Структура проекта
+
+```
+common/      контракты между двумя машинами: ноутбук <-> расба (protocol.h)
+control/     пульт: приложение Qt6 на Windows
+robot/       всё, что исполняется на роботе
+cmake/       поиск GStreamer
+third_party/ SDK лидара LDROBOT
+tests/       модульные тесты и интеграционный тест UART
+```
+
+Внутри `robot/` три уровня — сверху вниз: что робот решает, затем из чего он
+сделан.
+
+```
+robot/
+  main.cpp            сборка и запуск: по потоку на систему, и всё
+  state.h             доска: слоты, через которые потоки обмениваются данными
+  control_loop.cpp    ЕДИНСТВЕННОЕ место, которое командует приводом и сервами
+
+  control/            КАК ехать
+    manual/teleop.*     ручной режим: команда оператора идёт как есть
+    auto/slam.*         SLAM: поза и карта по одному лидару
+    auto/explore.*      политика: ехать к ближайшей неисследованной клетке
+    safety/             гейт препятствий и пороги секторов
+
+  supervisor/         ЧТО пришло и что с этим делать
+    intents.h           валидация кадра -> намерение оператора
+    recovery.*          автомат потери связи: стоп, пауза, короткий откат, стоп
+
+  systems/            ЧЕМ робот обладает
+    rpi/                код, исполняющийся на расбе
+      lidar/ drive/ servos/ camera/ link/ logging/ health/
+      link/map_link.*     канал карты и режима, порт 5004
+    esp32/              нижний уровень привода
+      uart_protocol.h     контракт линии расба <-> ESP, общий для обеих сторон
+      motor_driver/       прошивка ESP32
+```
+
+Правило зависимостей — только вниз: `control_loop` → `control` → `supervisor` →
+`systems`. `systems/rpi/link` не знает, что означает принятый кадр; `control` не
+знает про сокеты. Поэтому автономное управление добавляется как второй источник
+`DriveCommand` прямо перед гейтом безопасности, и всё, что ниже — гейт, UART,
+манёвр при потере связи — продолжает работать без изменений.
+
+Протокол расба ↔ ESP32 лежит **внутри** робота, а не в `common/`: `common` — это
+граница между двумя машинами, а обе стороны UART стоят на одном роботе.
+Подробности — в [`robot/systems/esp32/README.md`](robot/systems/esp32/README.md).
 
 ## Сборка на Raspberry Pi
 
 Скопируйте весь каталог исходников, включая `common/` и `cmake/`. Используйте новый каталог `build-pi`: имеющийся `build/` содержит Windows-бинарники и Windows CMake cache.
 
-Если после старой конфигурации `build-pi/mock_robot` уже является каталогом, используйте свежий каталог сборки, например `build-pi-fixed`, во всех командах сборки и запуска. Новая конфигурация размещает служебные файлы подпроекта в `mock_robot-build`, отдельно от исполняемого файла `mock_robot`.
+Если после старой конфигурации `build-pi/robot` уже является каталогом, используйте свежий каталог сборки, например `build-pi-fixed`, во всех командах сборки и запуска. Новая конфигурация размещает служебные файлы подпроекта в `robot-build`, отдельно от исполняемого файла `robot`.
 
 Из корня проекта на Raspberry Pi OS с установленным стеком `rpicam`:
 
@@ -30,7 +79,7 @@ cmake --build build-pi -j2
 Альтернативная сборка только из подпроекта (также используйте свежий каталог):
 
 ```bash
-cmake -S mock_robot -B build-pi-server -DCMAKE_BUILD_TYPE=Release
+cmake -S robot -B build-pi-server -DCMAKE_BUILD_TYPE=Release
 cmake --build build-pi-server -j2
 ```
 
@@ -41,7 +90,7 @@ cmake --build build-pi-server -j2
    ```bash
    rpicam-hello --list-cameras
    hostname -I
-   ./build-pi/mock_robot
+   ./build-pi/robot
    ```
 
 2. На Windows запустите `control.exe`, пересобранный с текущим `common/protocol.h`. В поле **IP** введите IPv4-адрес Raspberry Pi, например `192.168.1.50`. Порты: **cmd 5001**, **tlm 5002**, **video 5003**. Нажмите **Connect**.
@@ -61,11 +110,11 @@ New-NetFirewallRule -DisplayName "Robot Control video" -Direction Inbound -Actio
 ## Параметры сервера
 
 ```bash
-./build-pi/mock_robot --help
-./build-pi/mock_robot --camera 0 --width 1920 --height 1080 --fps 30 --bitrate 4000000
-./build-pi/mock_robot --video-host 192.168.1.100 --video-port 5003
-./build-pi/mock_robot --command-port 6001 --telemetry-port 6002 --video-port 6003
-./build-pi/mock_robot --video-source none
+./build-pi/robot --help
+./build-pi/robot --camera 0 --width 1920 --height 1080 --fps 30 --bitrate 4000000
+./build-pi/robot --video-host 192.168.1.100 --video-port 5003
+./build-pi/robot --command-port 6001 --telemetry-port 6002 --video-port 6003
+./build-pi/robot --video-source none
 ```
 
 | Параметр | По умолчанию | Значение |
@@ -78,7 +127,7 @@ New-NetFirewallRule -DisplayName "Robot Control video" -Direction Inbound -Actio
 | `--camera` | 0 | Индекс камеры для `rpicam-vid` на Linux |
 | `--width`, `--height` | 1280, 720 | Чётные размеры выходного кадра, до 1920×1080 |
 | `--fps` | 30 | Частота выходного видео, 1–30 |
-| `--bitrate` | 2000000 | Битрейт H.264 в битах/с |
+| `--bitrate` | 4000000 | Битрейт H.264 в битах/с |
 | `--drive-uart` | выключен | Включить передачу команд колёс через UART, только Linux |
 | `--drive-uart-device` | `/dev/serial0` | Устройство UART |
 | `--drive-uart-baud` | 115200 | Скорость UART: 9600, 19200, 38400, 57600, 115200 или 230400 бод |
@@ -89,7 +138,7 @@ New-NetFirewallRule -DisplayName "Robot Control video" -Direction Inbound -Actio
 
 ```bash
 sudo apt install -y gstreamer1.0-plugins-ugly
-./build-pi/mock_robot --video-source test
+./build-pi/robot --video-source test
 ```
 
 `test` использует `videotestsrc` и доступный H.264-кодировщик; пакет `plugins-ugly` даёт `x264enc`. В режиме `camera` Linux-сервер использует H.264 из `rpicam-vid`, дополнительный программный кодировщик GStreamer ему не нужен. Ошибка камеры выводится в консоль с повторной попыткой запуска; тестовая картинка автоматически не подставляется.
@@ -116,7 +165,7 @@ sudo apt install -y gstreamer1.0-plugins-ugly
 R:100%|L:-100%\n
 ```
 
-В примере `\n` обозначает байт перевода строки, а не два печатных символа. Диапазон каждого колеса — от −100 до 100%. Ответы и подтверждения ESP32 сервер не читает. Существующий приёмник находится в `esp32/esp32_code/esp32_code.ino`; доработка сервера Raspberry Pi не меняет эту программу.
+В примере `\n` обозначает байт перевода строки, а не два печатных символа. Диапазон каждого колеса — от −100 до 100%. Ответы и подтверждения ESP32 сервер не читает. Существующий приёмник находится в `robot/systems/esp32/motor_driver/motor_driver.ino`; доработка сервера Raspberry Pi не меняет эту программу.
 
 Контракт ESP32: UART RX — GPIO9, TX — GPIO10; сигнал правого ESC (`R`) — GPIO4, левого (`L`) — GPIO5. Эти номера относятся к ESP32. В приёмнике правый ESC инвертирован (`RIGHT_DIRECTION = -1`), левый — нет: знак команды описывает направление колеса, а фактическое направление требует проверки на установленной механике.
 
@@ -156,13 +205,13 @@ sudo usermod -aG dialout "$USER"
 ```bash
 cmake -S . -B build-pi-fixed -DCMAKE_BUILD_TYPE=Release -DBUILD_CONTROL=OFF
 cmake --build build-pi-fixed -j2
-./build-pi-fixed/mock_robot --video-source none --drive-uart
+./build-pi-fixed/robot --video-source none --drive-uart
 ```
 
 Для камеры, её сервоприводов и колёс одновременно, после настройки PWM из следующего раздела:
 
 ```bash
-sudo ./build-pi-fixed/mock_robot --camera 0 --servos --drive-uart \
+sudo ./build-pi-fixed/robot --camera 0 --servos --drive-uart \
   --drive-uart-device /dev/serial0 --drive-uart-baud 115200
 ```
 
@@ -181,7 +230,7 @@ sudo ./build-pi-fixed/mock_robot --camera 0 --servos --drive-uart \
 
 Новое TCP-подключение принимается во время любого этапа и сразу отменяет манёвр: если робот уже отъезжает, сначала отправляется STOP, затем принимаются новые команды. Без полной корректной команды новое соединение не запускает следующий отход при отключении. При запуске без клиента, некорректной команде, ошибке оборудования или завершении сервера отход назад не выполняется.
 
-Параметры заданы константами `kDisconnectPause`, `kDisconnectReverseDuration` и `kDisconnectReverseSpeed` в `mock_robot/net/command_listener.cpp`. Длительность и мощность задают короткий импульс движения, а не точное расстояние: фактический путь зависит от двигателя, покрытия и нагрузки и требует проверки на роботе.
+Параметры заданы константами `kPause`, `kReverseDuration` и `kReverseSpeed` класса `DisconnectRecovery` в `robot/supervisor/recovery.h`; сам манёвр выполняет `robot/control_loop.cpp`. Длительность и мощность задают короткий импульс движения, а не точное расстояние: фактический путь зависит от двигателя, покрытия и нагрузки и требует проверки на роботе.
 
 Проверка преобразования команд и передачи через виртуальный UART на Linux (нужны `python3` и `g++`):
 
@@ -226,7 +275,7 @@ sudo reboot
 ```bash
 cmake -S . -B build-pi-fixed -DCMAKE_BUILD_TYPE=Release -DBUILD_CONTROL=OFF
 cmake --build build-pi-fixed -j2
-sudo ./build-pi-fixed/mock_robot --camera 0 --servos
+sudo ./build-pi-fixed/robot --camera 0 --servos
 ```
 
 `sudo` здесь нужен для записи в `/sys/class/pwm`. `pigpio`, `pigpiod` и дополнительные библиотеки не требуются. Без `--servos` сервер не обращается к PWM и работает как раньше. Windows-клиент и формат пакетов сохранены: запустите прежний `control.exe`, подключитесь, нажмите левую кнопку мыши над видео для захвата курсора и двигайте мышь.
@@ -234,7 +283,7 @@ sudo ./build-pi-fixed/mock_robot --camera 0 --servos
 Сервер находит PWM0 по узлу устройства `pwm@7e20c000`; номер `pwmchipN` не зафиксирован. При необходимости путь можно задать явно:
 
 ```bash
-sudo ./build-pi-fixed/mock_robot --camera 0 --servos --servo-pwm-chip /sys/class/pwm/pwmchip0
+sudo ./build-pi-fixed/robot --camera 0 --servos --servo-pwm-chip /sys/class/pwm/pwmchip0
 ```
 
 В этом примере `pwmchip0` нужно заменить на контроллер GPIO12/13 вашего устройства. Посмотреть соответствие можно командой:
@@ -248,7 +297,7 @@ ls -l /sys/class/pwm/pwmchip*/device/of_node
 Отдельная настройка осей, пример со значениями по умолчанию:
 
 ```bash
-sudo ./build-pi-fixed/mock_robot --camera 0 --servos \
+sudo ./build-pi-fixed/robot --camera 0 --servos \
   --pitch-min-us 500 --pitch-center-us 1500 --pitch-max-us 2500 \
   --yaw-min-us 500 --yaw-center-us 1500 --yaw-max-us 2500
 ```
@@ -313,8 +362,8 @@ done
 Подготовлен отдельный тест чтения sysfs на временных файлах: проверяет единицы, недоступные/повреждённые показания, исчезновение датчиков, выбор батареи, `NaN` и раскладку пакета. Он не требует датчиков, GPIO или GStreamer. Из корня проекта на Linux:
 
 ```bash
-c++ -std=c++17 -Wall -Wextra -Wpedantic -Icommon -Imock_robot \
-  tests/test_system_telemetry.cpp mock_robot/system_telemetry.cpp \
+c++ -std=c++17 -Wall -Wextra -Wpedantic -Icommon -Irobot \
+  tests/test_system_telemetry.cpp robot/systems/rpi/health/system_telemetry.cpp \
   -o /tmp/test_system_telemetry
 /tmp/test_system_telemetry
 ```
@@ -322,7 +371,7 @@ c++ -std=c++17 -Wall -Wextra -Wpedantic -Icommon -Imock_robot \
 Пороги лидара проверяются отдельным тестом без железа и без сокетов:
 
 ```bash
-c++ -std=c++17 -Wall -Wextra -Wpedantic -Icommon -Imock_robot \
+c++ -std=c++17 -Wall -Wextra -Wpedantic -Icommon -Irobot \
   tests/test_obstacle_check.cpp -o /tmp/test_obstacle_check
 /tmp/test_obstacle_check
 ```
@@ -331,7 +380,7 @@ c++ -std=c++17 -Wall -Wextra -Wpedantic -Icommon -Imock_robot \
 без железа и сокетов:
 
 ```bash
-c++ -std=c++17 -Wall -Wextra -Wpedantic -Icommon -Imock_robot \
+c++ -std=c++17 -Wall -Wextra -Wpedantic -Icommon -Irobot \
   tests/test_drive_gate.cpp -o /tmp/test_drive_gate
 /tmp/test_drive_gate
 ```
@@ -352,13 +401,13 @@ c++ -std=c++17 -Wall -Wextra -Wpedantic -Icommon -Imock_robot \
 
 | Где | Что делает |
 |---|---|
-| `mock_robot/lidar/lidar_reader.cpp` | Свой поток. Измеряет и публикует `LidarDistances`. Единственное место, которое трогает разработчик лидара. |
-| `mock_robot/utils/lidar_distances.h` | Структура из шести именованных `float`, без логики. |
-| `mock_robot/utils/obstacle_check.h` | Пороги и чистая функция сравнения. Ни состояния, ни ввода-вывода. |
-| `ObstacleState` в `mock_robot/robot_runtime.h` | Единственный вызов `evaluate()`, хранение последнего вердикта и его возраста. |
-| `mock_robot/net/telemetry_sender.cpp` | Только читает готовый вердикт и кладёт в `Telemetry.sectors`. |
-| `mock_robot/utils/drive_gate.h` | Чистая функция: вердикт + направление → команда, которую реально выполнит привод. |
-| `mock_robot/net/command_listener.cpp` | Читает тот же вердикт и пропускает команду привода через `gateDriveCommand()`. |
+| `robot/systems/rpi/lidar/lidar_reader.cpp` | Свой поток. Измеряет и публикует `LidarDistances`. Единственное место, которое трогает разработчик лидара. |
+| `robot/systems/rpi/lidar/lidar_distances.h` | Структура из шести именованных `float`, без логики. |
+| `robot/control/safety/obstacle_check.h` | Пороги и чистая функция сравнения. Ни состояния, ни ввода-вывода. |
+| `ObstacleState` в `robot/state.h` | Единственный вызов `evaluate()`, хранение последнего вердикта и его возраста. |
+| `robot/systems/rpi/link/telemetry_link.cpp` | Только читает готовый вердикт и кладёт в `Telemetry.sectors`. |
+| `robot/control/safety/drive_gate.h` | Чистая функция: вердикт + направление → команда, которую реально выполнит привод. |
+| `robot/control_loop.cpp` | Читает тот же вердикт и пропускает команду привода через `gateDriveCommand()`. |
 
 Сравнение с порогами выполняется **ровно один раз**, в `ObstacleState::update()`. Если позвать
 `evaluate()` где-то ещё, появится вторая копия порогов, и вердикт в телеметрии рано или поздно
@@ -366,7 +415,7 @@ c++ -std=c++17 -Wall -Wextra -Wpedantic -Icommon -Imock_robot \
 
 Вердикт не только показывается оператору, но и **блокирует движение**. Перед отправкой
 кадра на UART `runCommandListener()` прогоняет команду привода через `gateDriveCommand()`
-(файл `mock_robot/utils/drive_gate.h`): если направление ведёт корпус в сектор с вердиктом
+(файл `robot/control/safety/drive_gate.h`): если направление ведёт корпус в сектор с вердиктом
 `Red`, команда заменяется на `STOP`. Проверяется тот же опубликованный вердикт, что уходит
 в телеметрию, и с тем же порогом устаревания — второй копии порогов нет.
 
@@ -382,9 +431,82 @@ c++ -std=c++17 -Wall -Wextra -Wpedantic -Icommon -Imock_robot \
 `Unknown`. Зависший или умерший поток лидара иначе продолжал бы бесконечно отдавать последний
 вердикт, а устаревшее «чисто» — ровно то показание, которое однажды заведёт робота в стену.
 
-Как вписать настоящий драйвер: заменить `readDistances()` в `mock_robot/lidar/lidar_reader.cpp`
+Как вписать настоящий драйвер: заменить `readDistances()` в `robot/systems/rpi/lidar/lidar_reader.cpp`
 реальными измерениями и добавить открытие/закрытие устройства в двух помеченных местах
 `runLidarReader()`. Поток, периодичность и публикация уже написаны, менять их не нужно.
+
+## Автономное исследование
+
+Робот строит карту по лидару и сам едет к ближайшему неисследованному месту.
+Запускается кнопкой **Explore** на пульте, карта показывается кнопкой **Map**.
+
+```bash
+sudo ./build-pi-fixed/robot --camera 0 --drive-uart --servos
+```
+
+SLAM и канал карты работают всегда; отключить — `--no-slam`.
+
+### Как это устроено
+
+| Файл | Что делает |
+|---|---|
+| `robot/systems/rpi/lidar/scan.h` | Полный оборот лидара в метрах, система робота: x вперёд, y влево. Отдельно от шести секторов — те остаются защитой и не меняются. |
+| `robot/control/auto/slam.cpp` | Сопоставление скана с картой: подбирает сдвиг и поворот, при которых оборот лучше всего ложится на уже построенное. Найденное смещение и есть перемещение робота. |
+| `robot/control/auto/explore.cpp` | Фронтир — свободная клетка, граничащая с неизвестной. Поиск в ширину от робота по проходимым клеткам, первый найденный фронтир и есть ближайший **по пути**. |
+| `robot/control/auto/map_types.h` | Сетка занятости 400×400 по 5 см (20×20 м), лог-шансы в `int8_t`. |
+| `robot/systems/rpi/link/map_link.cpp` | Порт 5004: карта дважды в секунду, запрос режима обратно. |
+
+Команда автономии проходит **через тот же `drive_gate`**, что и команда
+оператора. Автономия не знает, что гейт существует, и обойти его не может.
+
+### Ограничения, о которых надо знать
+
+**Одометрии нет.** Ни энкодеров, ни IMU — положение берётся только из
+сопоставления сканов. Отсюда два следствия:
+
+- **Длинный пустой коридор ломает SLAM.** Скан вдоль ровной стены одинаково
+  хорошо ложится в любом месте вдоль неё, и робот не понимает, сколько проехал.
+  Работает там, где есть углы, дверные проёмы и мебель.
+- **Дрейф не исправляется.** Замыкания петли нет: проехав круг по этажу, робот
+  не сведёт начало с концом. Это честный предел одного файла scan matching, а не
+  недоделка — исправление это уже оптимизация графа поз.
+
+Когда сопоставление плохое (`match_score` ниже 0.22), скан отбрасывается
+целиком: поза остаётся прежней, карта не трогается. Записать скан не в том месте
+— необратимо испортить карту. На пульте это видно надписью **SLAM lost**.
+
+**`--robot-radius` надо замерить.** По умолчанию 20 см — это половина ширины
+корпуса плюс запас. Планировщик вычёркивает клетки ближе этого расстояния к
+стене, поэтому заниженное значение проведёт маршрут в проём, куда робот не
+влезет.
+
+### Переключение режимов
+
+- **Explore** на пульте включает автономию, повторное нажатие выключает.
+- **Любая команда движения оператора мгновенно возвращает ручной режим.** Взять
+  управление можно не глядя на кнопки — просто нажать клавишу движения.
+- Кнопка показывает то, что робот **делает**, а не то, что у него запросили:
+  режим приходит в каждом кадре карты.
+- **Потеря связи автономию не останавливает** — робот продолжает исследовать.
+  Манёвр отхода назад при обрыве связи в этом режиме не выполняется, иначе он
+  боролся бы с планировщиком. Единственный способ остановить уехавшего робота —
+  переподключиться и нажать Stop либо снять питание.
+
+### Проверка без робота
+
+```bash
+./build-win/robot --lidar-source sim --video-source none
+```
+
+Виртуальная комната 5×4 м с дверным проёмом: SLAM строит карту, канал 5004
+отдаёт её, пульт рисует. Робот в симуляции только вращается на месте, так что
+проверяется вся цепочка, но не езда.
+
+Проверка самого SLAM на синтетической траектории с известным ответом:
+
+```bash
+c++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Icommon -Irobot   tests/test_slam.cpp robot/control/auto/slam.cpp -o /tmp/t -pthread && /tmp/t
+```
 
 ## Протокол
 
@@ -417,7 +539,7 @@ cmake --build build-win --config Release
 
 При необходимости добавьте `-DGSTREAMER_ROOT=C:/gstreamer/1.0/msvc_x86_64`. Доступный `pkg-config` используется в первую очередь. При наличии `windeployqt` Qt runtime копируется рядом с клиентом.
 
-Результаты: `build-win/control.exe` и `build-win/mock_robot.exe`. Для локальной проверки запустите `mock_robot.exe --video-source test` и подключите `control.exe` к `127.0.0.1`. В режиме `camera` Windows-сервер использует вебкамеру через `ksvideosrc`.
+Результаты: `build-win/control.exe` и `build-win/robot.exe`. Для локальной проверки запустите `robot.exe --video-source test` и подключите `control.exe` к `127.0.0.1`. В режиме `camera` Windows-сервер использует вебкамеру через `ksvideosrc`.
 
 ## Управление
 
@@ -436,7 +558,7 @@ WASD и стрелки записывают общее желаемое сост
 
 Противоположные клавиши гасят свою ось: `W+S` и `A+D` дают STOP, `W+A+D` — обычный FORWARD. Потеря фокуса окном отпускает все клавиши и останавливает робота.
 
-Диагонали замедляют колесо со стороны поворота, поэтому задним ходом робот рулит как автомобиль: `S+D` уводит корму вправо, то есть корпус разворачивается против часовой стрелки — в сторону, противоположную отдельной команде RIGHT. Коэффициент внутреннего колеса — `kDiagonalInnerFactor` в `mock_robot/actuators/drive_controller.h`.
+Диагонали замедляют колесо со стороны поворота, поэтому задним ходом робот рулит как автомобиль: `S+D` уводит корму вправо, то есть корпус разворачивается против часовой стрелки — в сторону, противоположную отдельной команде RIGHT. Коэффициент внутреннего колеса — `kDiagonalInnerFactor` в `robot/systems/rpi/drive/drive_controller.h`.
 
 | Команда | `Direction` | Колёса при `speed = 1.0` |
 |---|---|---|
@@ -449,7 +571,7 @@ WASD и стрелки записывают общее желаемое сост
 
 ## Диагностика на устройстве
 
-Проверка камеры отдельно от сервера (сначала остановите `mock_robot`):
+Проверка камеры отдельно от сервера (сначала остановите `robot`):
 
 ```bash
 rpicam-vid --camera 0 --nopreview --timeout 5000 --codec h264 --inline \

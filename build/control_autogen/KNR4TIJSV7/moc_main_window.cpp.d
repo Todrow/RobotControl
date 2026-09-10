@@ -1,9 +1,11 @@
 C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/control_autogen/KNR4TIJSV7/moc_main_window.cpp: C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/control/ui/main_window.h \
   C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/build/control_autogen/moc_predefs.h \
+  C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/common/map_protocol.h \
   C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/common/protocol.h \
   C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/control/input/input_controller.h \
   C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/control/net/command_sender.h \
   C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/control/net/connection_manager.h \
+  C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/control/net/map_client.h \
   C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/control/net/tcp_connection.h \
   C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/control/net/telemetry_receiver.h \
   C:/Users/Aleksandr/Documents/PetProjects/Rcontrol/RobotControl/control/state/desired_state_slot.h \

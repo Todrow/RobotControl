@@ -49,6 +49,12 @@ template <> constexpr inline auto MainWindow::qt_create_metaobjectdata<qt_meta_t
         "onCommandStatus",
         "connected",
         "onTelemetryStatus",
+        "onExploreClicked",
+        "onMapToggled",
+        "onMapFrame",
+        "MapFrame",
+        "frame",
+        "onMapStatus",
         "tick"
     };
 
@@ -71,8 +77,20 @@ template <> constexpr inline auto MainWindow::qt_create_metaobjectdata<qt_meta_t
         QtMocHelpers::SlotData<void(bool)>(10, 2, QMC::AccessPrivate, QMetaType::Void, {{
             { QMetaType::Bool, 9 },
         }}),
-        // Slot 'tick'
+        // Slot 'onExploreClicked'
         QtMocHelpers::SlotData<void()>(11, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'onMapToggled'
+        QtMocHelpers::SlotData<void()>(12, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'onMapFrame'
+        QtMocHelpers::SlotData<void(MapFrame)>(13, 2, QMC::AccessPrivate, QMetaType::Void, {{
+            { 0x80000000 | 14, 15 },
+        }}),
+        // Slot 'onMapStatus'
+        QtMocHelpers::SlotData<void(bool)>(16, 2, QMC::AccessPrivate, QMetaType::Void, {{
+            { QMetaType::Bool, 9 },
+        }}),
+        // Slot 'tick'
+        QtMocHelpers::SlotData<void()>(17, 2, QMC::AccessPrivate, QMetaType::Void),
     };
     QtMocHelpers::UintData qt_properties {
     };
@@ -101,7 +119,11 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 2: _t->onTelemetry((*reinterpret_cast<std::add_pointer_t<proto::Telemetry>>(_a[1]))); break;
         case 3: _t->onCommandStatus((*reinterpret_cast<std::add_pointer_t<bool>>(_a[1]))); break;
         case 4: _t->onTelemetryStatus((*reinterpret_cast<std::add_pointer_t<bool>>(_a[1]))); break;
-        case 5: _t->tick(); break;
+        case 5: _t->onExploreClicked(); break;
+        case 6: _t->onMapToggled(); break;
+        case 7: _t->onMapFrame((*reinterpret_cast<std::add_pointer_t<MapFrame>>(_a[1]))); break;
+        case 8: _t->onMapStatus((*reinterpret_cast<std::add_pointer_t<bool>>(_a[1]))); break;
+        case 9: _t->tick(); break;
         default: ;
         }
     }
@@ -113,6 +135,13 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
             default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
             case 0:
                 *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType::fromType< proto::Telemetry >(); break;
+            }
+            break;
+        case 7:
+            switch (*reinterpret_cast<int*>(_a[1])) {
+            default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
+            case 0:
+                *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType::fromType< MapFrame >(); break;
             }
             break;
         }
@@ -138,14 +167,14 @@ int MainWindow::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 6)
+        if (_id < 10)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 6;
+        _id -= 10;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 6)
+        if (_id < 10)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 6;
+        _id -= 10;
     }
     return _id;
 }
