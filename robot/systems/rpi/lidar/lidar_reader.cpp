@@ -52,11 +52,11 @@ constexpr float kFrontOffsetDeg = 0.0f;
 // other way round on this unit.
 constexpr bool kMirrorAngle = false;
 
-// Closer than this is noise around the axis. Further than kMaxRangeMm is not
-// interesting: it is reported as exactly kMaxRangeMm, and so is a zone with no
-// echo at all, so every sector always carries a number.
+// Closer than this is noise around the axis. The far clamp is per-run
+// (LidarOptions::sector_range_mm, passed into readDistances): a reading past it
+// is dropped and a sector with no echo in range reads as exactly that value, so
+// every sector always carries a number.
 constexpr float kMinValidMm = 20.0f;
-constexpr float kMaxRangeMm = 500.0f;
 
 // SLAM needs the opposite of the sector clamp above: everything the device can
 // actually see. At 500 mm no map would ever form -- the robot would be walking
@@ -180,8 +180,8 @@ LidarDriver* openLidar(std::string& opened_port) {
 
 // ---------------------------------------------------------------------------
 //  One revolution of points -> the nearest obstacle per sector, in millimetres.
-//  A zone with no echo within range reads as kMaxRangeMm rather than NaN: the
-//  reading is real, it just says "nothing closer than half a metre".
+//  A zone with no echo within range reads as max_range_mm rather than NaN: the
+//  reading is real, it just says "nothing closer than the clamp".
 // ---------------------------------------------------------------------------
 // The same revolution as readDistances(), kept whole and turned into Cartesian
 // points in the robot frame. The device measures angles clockwise from the nose,
@@ -202,12 +202,12 @@ LaserScan buildScan(const ldlidar::Points2D& scan) {
     return out;
 }
 
-LidarDistances readDistances(const ldlidar::Points2D& scan) {
+LidarDistances readDistances(const ldlidar::Points2D& scan, float max_range_mm) {
     std::array<float, proto::SECTOR_COUNT> nearest;
-    nearest.fill(kMaxRangeMm);
+    nearest.fill(max_range_mm);
     for (const ldlidar::PointData& point : scan) {
         const float millimetres = static_cast<float>(point.distance);
-        if (millimetres < kMinValidMm || millimetres > kMaxRangeMm) continue;
+        if (millimetres < kMinValidMm || millimetres > max_range_mm) continue;
         const int sector = sectorOfAngle(toRobotAngle(point.angle));
         if (sector < 0) continue;
         nearest[static_cast<size_t>(sector)] =
@@ -337,8 +337,8 @@ void runLidarReader(const RobotOptions& options, RobotState& state) {
         return;
     }
 
-    std::printf("[lidar] STL-19P, range %.0f mm; red %.0f..%.0f mm (speed-scaled), every %d ms\n",
-                static_cast<double>(kMaxRangeMm),
+    std::printf("[lidar] STL-19P, range %d mm; red %.0f..%.0f mm (speed-scaled), every %d ms\n",
+                options.lidar.sector_range_mm,
                 static_cast<double>(options.lidar.zone.red_base_mm),
                 static_cast<double>(options.lidar.zone.red_max_mm),
                 options.lidar.period_ms);
@@ -372,7 +372,9 @@ void runLidarReader(const RobotOptions& options, RobotState& state) {
             read_failures = 0;
             const float commanded_mm_s =
                 state.drive_speed.load() * options.lidar.zone.max_speed_mm_s;
-            state.obstacles.update(readDistances(scan), options.lidar.zone, commanded_mm_s);
+            state.obstacles.update(
+                readDistances(scan, static_cast<float>(options.lidar.sector_range_mm)),
+                options.lidar.zone, commanded_mm_s);
             // Second, independent product: the full revolution for SLAM. The
             // verdicts above are unaffected by anything that happens to it.
             state.scans.publish(buildScan(scan));

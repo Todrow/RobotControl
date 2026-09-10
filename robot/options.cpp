@@ -28,6 +28,7 @@ void printUsage(const char* executable) {
         "  --lidar-source SOURCE real | sim | none (default real: the STL-19P lidar)\n"
         "  --lidar-period MS     Sector publish period, 10..1000 (default 100)\n"
         "  --lidar-max-age MS    Samples older than this read as Unknown (default 500)\n"
+        "  --lidar-sector-range MM  Far clamp on sector distance; must exceed the red zone, 200..12000 (default 1500)\n"
         "  --obstacle-red MM     Red zone at rest; grows with closing speed, 10..10000 (default 250)\n"
         "  --obstacle-red-max MM Ceiling the speed-scaled red zone never exceeds, 10..10000 (default 700)\n"
         "  --obstacle-yellow-margin MM  Yellow band width above the red zone, 10..10000 (default 80)\n"
@@ -143,6 +144,8 @@ bool parseOptions(int argc, char* argv[], RobotOptions& options) {
             if (!integerOption(name, value, 10, 1000, options.lidar.period_ms)) return false;
         } else if (name == "--lidar-max-age") {
             if (!integerOption(name, value, 10, 10000, options.lidar.max_age_ms)) return false;
+        } else if (name == "--lidar-sector-range") {
+            if (!integerOption(name, value, 200, 12000, options.lidar.sector_range_mm)) return false;
         } else if (name == "--obstacle-red") {
             if (!integerOption(name, value, 10, 10000, number)) return false;
             options.lidar.zone.red_base_mm = static_cast<float>(number);
@@ -241,7 +244,8 @@ bool parseOptions(int argc, char* argv[], RobotOptions& options) {
     if (!validLidarOptions(options.lidar)) {
         std::fprintf(stderr,
                      "Lidar needs 0 < --obstacle-red <= --obstacle-red-max, a positive "
-                     "--obstacle-yellow-margin and --lidar-max-age >= --lidar-period\n");
+                     "--obstacle-yellow-margin, --lidar-max-age >= --lidar-period and "
+                     "--lidar-sector-range >= --obstacle-red-max + --obstacle-yellow-margin\n");
         return false;
     }
     if (options.servos.pitch.channel == options.servos.yaw.channel) {
