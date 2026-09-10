@@ -52,12 +52,22 @@ public:
         : options_(options), min_match_score_(min_match_score) {}
 
     // How much unseen space a frontier has to open up before it is worth driving
-    // to, in cells. This is the unknown AREA flooded from behind the frontier,
-    // not the frontier's own size: a stray unknown cell has an eight-cell
-    // border, so counting the border would wave it straight through, while a
-    // real doorway opens onto a whole room. 25 cells is about 0.06 square
-    // metres -- bigger than any beam-gap artefact, far smaller than a room.
-    static constexpr int kMinRevealedCells = 25;
+    // to, in SQUARE METRES. This is the unknown area flooded from behind the
+    // frontier, not the frontier's own size: a stray unknown cell has an
+    // eight-cell border, so counting the border would wave it straight through,
+    // while a real doorway opens onto a whole room.
+    //
+    // In metres rather than cells so that changing the grid resolution does not
+    // silently change what counts as worth exploring.
+    static constexpr float kMinRevealedArea = 0.06f;
+    // Stop measuring once this much has been found: past here it is plainly a
+    // real place to go, and flooding an entire unexplored floor to learn that
+    // would be wasted work.
+    static constexpr float kRevealedCapArea = 0.75f;
+    // How far from a frontier cell to look for somewhere the robot can actually
+    // stand. Has to cover the inflation radius, or every doorway looks
+    // unreachable.
+    static constexpr float kGoalReachM = 0.35f;
 
     // One cycle against the latest map. Returns what the robot should do now:
     // STOP when there is nowhere left to go, when the map is not trustworthy, or
@@ -97,6 +107,10 @@ private:
     // The goal survives between re-plans; see the header comment.
     WorldPoint goal_;
     bool have_goal_ = false;
+    // How far the goal was when it was chosen. The goal is not reconsidered
+    // until half of that has been covered -- the standard cure for a frontier
+    // explorer that swaps targets before it has made progress on either.
+    float goal_distance_at_choice_ = 0.0f;
     std::chrono::steady_clock::time_point goal_chosen_at_{};
 
     std::chrono::steady_clock::time_point planned_at_{};

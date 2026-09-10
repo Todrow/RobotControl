@@ -45,11 +45,13 @@ struct ExploreOptions {
     float robot_radius_m = 0.20f;
     // Close enough to the goal to call it reached and pick the next one.
     float goal_tolerance_m = 0.25f;
-    // Frontiers nearer than this are ignored while anything further exists. A
-    // goal half a metre away is reached before the robot has finished turning
-    // towards it, so the robot spends its time turning rather than travelling.
-    // Only if nothing further is reachable does it settle for a close one.
-    float min_goal_distance_m = 1.2f;
+    // How a candidate is scored: revealed area, in square metres, minus what it
+    // costs to get there. distance_penalty is square metres of map given up per
+    // metre driven; turn_penalty is the same per radian of pivot. Raising
+    // turn_penalty makes the robot stubborn about its current heading, which is
+    // the knob to reach for if it still dithers.
+    float distance_penalty = 0.15f;
+    float turn_penalty = 0.30f;
     // Give up on a goal that has not been reached in this long and pick another.
     // Without it a goal the robot cannot quite get to would hold it forever.
     int goal_timeout_ms = 25000;

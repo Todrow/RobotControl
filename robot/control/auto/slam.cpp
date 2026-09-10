@@ -24,6 +24,11 @@ constexpr int kFieldPeak = 255;
 constexpr int kFieldNear = 150;  // the 8 cells touching a wall
 constexpr int kFieldFar = 60;    // the ring beyond those
 
+// How far a wall bleeds, in metres, converted to whatever that is in cells.
+constexpr float kBlurMetres = 0.10f;
+const int kBlurCells =
+    std::max(1, static_cast<int>(kBlurMetres / OccupancyGrid::kResolution + 0.5f));
+
 // Fewest scan points that have to fall on known ground before a score means
 // anything. Below this the robot is essentially somewhere new and the previous
 // pose is the best estimate available.
@@ -245,8 +250,13 @@ void Slam::rebuildFields() {
                 std::min<int>(evidence, OccupancyGrid::kOccupiedAt) * kFieldPeak /
                 OccupancyGrid::kOccupiedAt;
             raise(cx, cy, strength);
-            for (int oy = -2; oy <= 2; ++oy) {
-                for (int ox = -2; ox <= 2; ++ox) {
+            // Bleed a fixed DISTANCE, not a fixed number of cells: the point is
+            // that a scan taken 10 cm further along still finds the wall, and
+            // that is a property of the room, not of the grid. Spelling it in
+            // cells would double the blur when the cell size doubles and turn
+            // the match peak to mush.
+            for (int oy = -kBlurCells; oy <= kBlurCells; ++oy) {
+                for (int ox = -kBlurCells; ox <= kBlurCells; ++ox) {
                     if (ox == 0 && oy == 0) continue;
                     const bool touching = std::abs(ox) <= 1 && std::abs(oy) <= 1;
                     raise(cx + ox, cy + oy,

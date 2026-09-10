@@ -15,15 +15,6 @@ constexpr float kPi = 3.14159265358979f;
 // point under its own nose; too long and it cuts corners into walls.
 constexpr float kLookaheadM = 0.35f;
 
-// How far from a frontier cell to look for somewhere the robot can actually
-// stand. Has to cover the inflation radius, or every doorway looks unreachable.
-constexpr int kGoalReach = 6;
-
-// Stop counting unknown space behind a frontier once this much has been found:
-// past here it is plainly a real place to go, and flooding an entire unexplored
-// floor to learn that would be wasted work.
-constexpr int kRevealedCap = 300;
-
 float wrapAngle(float radians) noexcept {
     while (radians > kPi) radians -= 2.0f * kPi;
     while (radians < -kPi) radians += 2.0f * kPi;
@@ -48,6 +39,7 @@ void Explorer::reset() {
     have_goal_ = false;
     finished_ = false;
     planned_at_ = {};
+    goal_distance_at_choice_ = 0.0f;
     goal_chosen_at_ = {};
 }
 
@@ -133,10 +125,29 @@ bool Explorer::planPath(const MapSnapshot& snapshot) {
         return static_cast<float>(steps[static_cast<size_t>(node)]) * OccupancyGrid::kResolution;
     };
 
+    const int reach_cells =
+        std::max(1, static_cast<int>(kGoalReachM / OccupancyGrid::kResolution + 0.5f));
+
+    // Is there still unexplored space next to this cell? The goal is a place to
+    // STAND near a frontier, not the frontier cell itself, so asking whether the
+    // goal is a frontier is the wrong question -- it never is, and asking it
+    // threw the goal away on the very next cycle, which is most of the reason
+    // the robot kept re-deciding where to go.
+    const auto stillWorthGoing = [&](int cx, int cy) {
+        for (int oy = -reach_cells; oy <= reach_cells; ++oy)
+            for (int ox = -reach_cells; ox <= reach_cells; ++ox)
+                if (isFrontier(snapshot.grid, cx + ox, cy + oy)) return true;
+        return false;
+    };
+
     int goal = -1;
 
-    // Keep the previous goal if it is still worth going to. Re-deciding every
-    // cycle is what makes a robot turn one way, then the other, and never arrive.
+    // Commit: do not reconsider the goal until half the distance to it has been
+    // covered. Choosing afresh every cycle is what makes a frontier explorer
+    // turn one way, then the other, and never arrive -- two candidates of
+    // similar value keep swapping places as the map updates. Half-way is the
+    // usual compromise: long enough to make real progress, short enough to
+    // abandon a target that turned out to be behind a wall.
     if (have_goal_) {
         int gx = 0;
         int gy = 0;
@@ -145,8 +156,10 @@ bool Explorer::planPath(const MapSnapshot& snapshot) {
             std::chrono::milliseconds(options_.goal_timeout_ms);
         if (!timed_out && OccupancyGrid::toCell(goal_.x, goal_.y, gx, gy)) {
             const int node = gy * cells + gx;
-            if (reached(node) && isFrontier(snapshot.grid, gx, gy) &&
-                travel(node) > options_.goal_tolerance_m)
+            const float remaining = travel(node);
+            if (reached(node) && stillWorthGoing(gx, gy) &&
+                remaining > options_.goal_tolerance_m &&
+                remaining > 0.5f * goal_distance_at_choice_)
                 goal = node;
         }
     }
@@ -160,9 +173,8 @@ bool Explorer::planPath(const MapSnapshot& snapshot) {
         std::vector<uint8_t> seen(static_cast<size_t>(cells) * cells, 0);
         std::vector<uint8_t> counted_unknown(static_cast<size_t>(cells) * cells, 0);
         int best = -1;
+        float best_value = 0.0f;
         float best_travel = 0.0f;
-        int fallback = -1;
-        float fallback_travel = 0.0f;
 
         for (int seed : frontier_cells) {
             if (seen[static_cast<size_t>(seed)]) continue;
@@ -199,8 +211,8 @@ bool Explorer::planPath(const MapSnapshot& snapshot) {
                 {
                     const int fx = node % cells;
                     const int fy = node / cells;
-                    for (int oy = -kGoalReach; oy <= kGoalReach; ++oy) {
-                        for (int ox = -kGoalReach; ox <= kGoalReach; ++ox) {
+                    for (int oy = -reach_cells; oy <= reach_cells; ++oy) {
+                        for (int ox = -reach_cells; ox <= reach_cells; ++ox) {
                             const int nx = fx + ox;
                             const int ny = fy + oy;
                             if (!OccupancyGrid::inside(nx, ny)) continue;
@@ -239,7 +251,9 @@ bool Explorer::planPath(const MapSnapshot& snapshot) {
             // Counting only the cells touching the frontier cannot tell those
             // apart -- a 0.6 m doorway touches eleven, which is the same order
             // as a handful of artefacts side by side.
-            while (!unknown_queue.empty() && revealed < kRevealedCap) {
+            const int revealed_cap = static_cast<int>(
+                kRevealedCapArea / (OccupancyGrid::kResolution * OccupancyGrid::kResolution));
+            while (!unknown_queue.empty() && revealed < revealed_cap) {
                 const int node = unknown_queue.front();
                 unknown_queue.pop_front();
                 const int cx = node % cells;
@@ -259,25 +273,43 @@ bool Explorer::planPath(const MapSnapshot& snapshot) {
                 }
             }
 
-            if (revealed < kMinRevealedCells || nearest < 0) continue;
+            const float cell_area = OccupancyGrid::kResolution * OccupancyGrid::kResolution;
+            if (static_cast<float>(revealed) * cell_area < kMinRevealedArea || nearest < 0)
+                continue;
             if (nearest_travel < options_.goal_tolerance_m) continue;
-            if (nearest_travel >= options_.min_goal_distance_m) {
-                if (best < 0 || nearest_travel < best_travel) {
-                    best = nearest;
-                    best_travel = nearest_travel;
-                }
-            } else if (fallback < 0 || nearest_travel > fallback_travel) {
-                // Too close to be a good goal, but better than declaring the job
-                // done: kept only if nothing further away is reachable.
-                fallback = nearest;
-                fallback_travel = nearest_travel;
+
+            // Cost-utility, in square metres of new map:
+            //
+            //   value = area revealed - (cost of getting there) - (cost of turning)
+            //
+            // Plain "nearest" ignores both terms and so treats a target behind
+            // the robot as being just as good as one straight ahead. It is not:
+            // reaching it costs a pivot, during which the robot maps nothing and
+            // the map shifts under it, which is how the spinning starts. Paying
+            // for rotation is what makes the robot pick a direction and keep it.
+            float wx = 0.0f;
+            float wy = 0.0f;
+            OccupancyGrid::toWorld(nearest % cells, nearest / cells, wx, wy);
+            const float turn = std::fabs(wrapAngle(
+                std::atan2(wy - snapshot.pose.y, wx - snapshot.pose.x) - snapshot.pose.theta));
+            const float value = static_cast<float>(revealed) * cell_area -
+                                options_.distance_penalty * nearest_travel -
+                                options_.turn_penalty * turn;
+            if (best < 0 || value > best_value) {
+                best = nearest;
+                best_value = value;
+                best_travel = nearest_travel;
             }
         }
-        goal = best >= 0 ? best : fallback;
+        goal = best;
         if (goal >= 0) {
             OccupancyGrid::toWorld(goal % cells, goal / cells, goal_.x, goal_.y);
             have_goal_ = true;
+            goal_distance_at_choice_ = best_travel;
             goal_chosen_at_ = std::chrono::steady_clock::now();
+            std::printf("[explore] goal (%+.2f, %+.2f)  %.1f m  value %.2f\n",
+                        static_cast<double>(goal_.x), static_cast<double>(goal_.y),
+                        static_cast<double>(best_travel), static_cast<double>(best_value));
         }
     }
 

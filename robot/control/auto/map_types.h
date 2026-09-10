@@ -35,10 +35,16 @@ enum class Cell : uint8_t {
 // cell, and exactly what Unknown means.
 class OccupancyGrid {
 public:
-    // 400 x 400 at 5 cm is 20 x 20 m, and a doorway is ~8 cells wide -- enough
-    // resolution for the planner to see the gap.
+    // 400 x 400 at 10 cm is 40 x 40 m. A 0.8 m doorway is still 8 cells wide,
+    // which is all the planner needs to see a gap, and every pass over the grid
+    // -- scan matching, inflation, the breadth-first search -- costs a quarter
+    // of what it did at 5 cm.
+    //
+    // Everything downstream that cares about real distances is written in metres
+    // and divided by this, so changing it does not silently rescale a threshold
+    // someone tuned in cells.
     static constexpr int kCells = 400;
-    static constexpr float kResolution = 0.05f;
+    static constexpr float kResolution = 0.10f;
 
     // Beyond these the cell counts as decided. Still asymmetric in the safe
     // direction -- one solid hit is enough to call something a wall, while free

@@ -97,6 +97,31 @@ int main() {
               "the goal must not be re-picked while it is still valid");
     }
 
+    // Two equally good ways out, one ahead and one behind. Nearest-frontier has
+    // no reason to prefer either and flips between them as the map updates;
+    // cost-utility pays for the pivot, so it commits to the one in front.
+    {
+        MapSnapshot both;
+        both.match_score = 1.0f;
+        both.pose = Pose2D{};  // facing +x
+        fill(both.grid, -3.0f, -2.0f, 3.0f, 2.0f, false);
+        fill(both.grid, -3.1f, 2.0f, 3.1f, 2.2f, true);
+        fill(both.grid, -3.1f, -2.2f, 3.1f, -2.0f, true);
+        // Doorway at +x.
+        fill(both.grid, 3.0f, -2.2f, 3.1f, -0.3f, true);
+        fill(both.grid, 3.0f, 0.3f, 3.1f, 2.2f, true);
+        // Mirror-image doorway at -x, the same size and the same distance.
+        fill(both.grid, -3.1f, -2.2f, -3.0f, -0.3f, true);
+        fill(both.grid, -3.1f, 0.3f, -3.0f, 2.2f, true);
+
+        Explorer chooser(options, 0.22f);
+        chooser.step(both);
+        check(chooser.haveGoal(), "one of the two doorways must be chosen");
+        std::printf("with two equal exits, goal x = %+.2f\n",
+                    static_cast<double>(chooser.goal().x));
+        check(chooser.goal().x > 0.0f, "the exit ahead must beat the one behind");
+    }
+
     // A map with nowhere left to go: the same room, sealed.
     MapSnapshot sealed;
     sealed.match_score = 1.0f;
