@@ -1,0 +1,6 @@
+set(__QT_DEPLOY_TARGET_control_linux_FILE /home/todrow/Documents/RobotControl/build-linux/control_linux)
+set(__QT_DEPLOY_TARGET_control_linux_TYPE EXECUTABLE)
+set(__QT_DEPLOY_TARGET_mock_robot_FILE /home/todrow/Documents/RobotControl/build-linux/mock_robot)
+set(__QT_DEPLOY_TARGET_mock_robot_TYPE EXECUTABLE)
+set(__QT_DEPLOY_TARGET_ldlidar_sdk_FILE /home/todrow/Documents/RobotControl/build-linux/mock_robot-build/libldlidar_sdk.a)
+set(__QT_DEPLOY_TARGET_ldlidar_sdk_TYPE STATIC_LIBRARY)

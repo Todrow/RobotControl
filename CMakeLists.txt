@@ -5,11 +5,16 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Raspberry Pi only needs the console server. The operator UI stays on Windows.
+# Raspberry Pi only needs the console server. The operator UI stays on Windows;
+# control_linux/ is the POSIX/Qt6 port of it for a Linux laptop.
 option(BUILD_CONTROL "Build the Windows Qt control application" ${WIN32})
+option(BUILD_CONTROL_LINUX "Build the Linux Qt6 control application (control_linux/)" OFF)
 option(BUILD_MOCK_ROBOT "Build the Raspberry Pi / Windows robot server" ON)
 if(BUILD_CONTROL AND NOT WIN32)
     message(FATAL_ERROR "control is a Windows application. Use -DBUILD_CONTROL=OFF on Raspberry Pi.")
+endif()
+if(BUILD_CONTROL_LINUX AND WIN32)
+    message(FATAL_ERROR "control_linux is the POSIX port. On Windows use -DBUILD_CONTROL=ON instead.")
 endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
@@ -18,10 +23,15 @@ foreach(cfg ${CMAKE_CONFIGURATION_TYPES})
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${cfg_upper} "${CMAKE_BINARY_DIR}")
 endforeach()
 
-if(BUILD_CONTROL OR BUILD_MOCK_ROBOT)
+if(BUILD_CONTROL OR BUILD_CONTROL_LINUX OR BUILD_MOCK_ROBOT)
     find_package(Threads REQUIRED)
     include(cmake/GStreamer.cmake)
-    robot_find_gstreamer(${BUILD_CONTROL})
+    # Both clients need gstreamer-video-1.0 for GstVideoOverlay; the server does not.
+    if(BUILD_CONTROL OR BUILD_CONTROL_LINUX)
+        robot_find_gstreamer(TRUE)
+    else()
+        robot_find_gstreamer(FALSE)
+    endif()
 endif()
 
 if(BUILD_CONTROL)
@@ -53,6 +63,10 @@ if(BUILD_CONTROL)
                     "$<TARGET_FILE:control>"
             COMMENT "windeployqt")
     endif()
+endif()
+
+if(BUILD_CONTROL_LINUX)
+    add_subdirectory(control_linux control_linux-build)
 endif()
 
 if(BUILD_MOCK_ROBOT)

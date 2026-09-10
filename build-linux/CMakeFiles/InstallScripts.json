@@ -1,0 +1,9 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/todrow/Documents/RobotControl/build-linux/cmake_install.cmake",
+		"/home/todrow/Documents/RobotControl/build-linux/control_linux-build/cmake_install.cmake",
+		"/home/todrow/Documents/RobotControl/build-linux/mock_robot-build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
