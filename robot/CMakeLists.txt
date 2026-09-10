@@ -26,9 +26,12 @@ add_executable(robot
     options.cpp
     control_loop.cpp
     control/manual/teleop.cpp
+    control/auto/slam.cpp
+    control/auto/explore.cpp
     supervisor/recovery.cpp
     systems/rpi/link/command_link.cpp
     systems/rpi/link/telemetry_link.cpp
+    systems/rpi/link/map_link.cpp
     systems/rpi/camera/camera_stream.cpp
     systems/rpi/lidar/lidar_reader.cpp
     systems/rpi/drive/drive_controller.cpp

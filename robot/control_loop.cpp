@@ -19,14 +19,21 @@ namespace {
 
 // How long the loop may sit in accept() before looking at the clock again.
 constexpr auto kAcceptPoll = std::chrono::milliseconds(200);
+// Shorter while driving itself: with no operator connected this is also how
+// often the ESP32 gets fed, and it stops the motors after 500 ms of silence.
+constexpr auto kAutonomousPoll = std::chrono::milliseconds(50);
 // A controller that goes quiet this long has lost the link. Far above
 // proto::COMMAND_PERIOD_MS, so ordinary scheduling jitter never trips it.
 constexpr auto kReceiveTimeout = std::chrono::milliseconds(500);
+// An autonomy command older than this reads as STOP: the explorer thread has
+// stalled, and a robot must not keep driving on a command nobody is refreshing.
+constexpr auto kAutonomyMaxAge = std::chrono::milliseconds(400);
 
-// The safety gate, applied to every command regardless of where it came from.
-// Reads the verdict the lidar module published -- never a second copy of the
-// thresholds -- with the same staleness cutoff telemetry uses, so a sector going
-// Red (or its sample ageing out) takes effect within one pass.
+// The safety gate, applied to every command regardless of where it came from --
+// operator, link-loss manoeuvre or autonomy. Reads the verdict the lidar module
+// published -- never a second copy of the thresholds -- with the same staleness
+// cutoff telemetry uses, so a sector going Red (or its sample ageing out) takes
+// effect within one pass.
 proto::DriveCommand gated(const proto::DriveCommand& command, const RobotOptions& options,
                           const RobotState& state) {
     if (!options.lidar.enforce) return command;
@@ -63,6 +70,32 @@ bool serviceRecovery(DisconnectRecovery& recovery, DriveController& drive,
     return true;
 }
 
+// The operator asked for autonomy, or dropped it. Publishing the mode here, in
+// the one thread that acts on it, keeps "who is driving" a single decision
+// rather than a race between the button and the explorer.
+void applyModeRequest(RobotState& state) {
+    const ControlMode wanted =
+        state.explore_requested.load() ? ControlMode::Explore : ControlMode::Manual;
+    if (state.mode.load() == wanted) return;
+    state.mode.store(wanted);
+    std::printf("[cmd] mode: %s\n", wanted == ControlMode::Explore ? "EXPLORE" : "MANUAL");
+}
+
+// Any real movement command from the operator takes the robot back. Grabbing the
+// stick has to work instantly and without thinking -- that is the whole point of
+// having a human in the loop -- so this cancels autonomy rather than asking it
+// to stop politely. A STOP or a camera-only frame is not a grab: the controller
+// sends those continuously whether or not anyone is touching the keys.
+bool operatorTookOver(const OperatorIntent& intent, RobotState& state) {
+    if (state.mode.load() != ControlMode::Explore) return false;
+    if (intent.drive.direction == proto::Direction::STOP || intent.drive.speed <= 0.0f)
+        return false;
+    state.explore_requested.store(false);
+    state.mode.store(ControlMode::Manual);
+    std::printf("[cmd] mode: MANUAL (operator took over)\n");
+    return true;
+}
+
 }  // namespace
 
 void runControlLoop(const RobotOptions& options, RobotState& state, VideoTarget& video_target) {
@@ -83,16 +116,27 @@ void runControlLoop(const RobotOptions& options, RobotState& state, VideoTarget&
     Teleop teleop;
 
     while (state.running.load()) {
-        // Wake up for whichever comes first: a controller, or the next step of
-        // the manoeuvre. Reconnecting has to stay possible throughout the pause,
-        // the reverse pulse and the final stop.
-        auto accept_deadline = net::Clock::now() + kAcceptPoll;
+        applyModeRequest(state);
+        const bool autonomous = state.mode.load() == ControlMode::Explore;
+
+        // Wake up for whichever comes first: a controller, or the next thing the
+        // robot has to do on its own. Reconnecting has to stay possible
+        // throughout the link-loss manoeuvre and throughout autonomous driving.
+        auto accept_deadline = net::Clock::now() + (autonomous ? kAutonomousPoll : kAcceptPoll);
         if (recovery.active()) accept_deadline = std::min(accept_deadline, recovery.nextActionAt());
         const auto accepted = link.waitForClient(accept_deadline, state.running);
 
         if (accepted == net::IoResult::Timeout) {
             if (!state.running.load()) break;
-            if (!serviceRecovery(recovery, drive, options, state)) {
+            if (autonomous) {
+                // Driving itself with nobody connected. Same gate, same UART,
+                // same everything -- the only difference is where the command
+                // came from.
+                if (!drive.apply(gated(state.autonomy.command(kAutonomyMaxAge), options, state))) {
+                    state.abort();
+                    break;
+                }
+            } else if (!serviceRecovery(recovery, drive, options, state)) {
                 state.abort();
                 break;
             }
@@ -140,9 +184,12 @@ void runControlLoop(const RobotOptions& options, RobotState& state, VideoTarget&
                 break;
             }
             const OperatorIntent intent = intentFrom(frame);
+            operatorTookOver(intent, state);
+            applyModeRequest(state);
+            const bool driving_itself = state.mode.load() == ControlMode::Explore;
 
-            // Apply each valid absolute camera position; the controller avoids
-            // redundant PWM writes. Logging thresholds must not filter motion.
+            // The camera always follows the operator, in either mode: watching
+            // where the robot is going is not the same as steering it.
             if (!servos.apply(teleop.camera(intent))) {
                 state.clearAppliedCamera();
                 state.abort();
@@ -150,7 +197,8 @@ void runControlLoop(const RobotOptions& options, RobotState& state, VideoTarget&
             }
             if (options.servos.enabled) state.setAppliedCamera(teleop.camera(intent));
 
-            const proto::DriveCommand requested = teleop.drive(intent);
+            const proto::DriveCommand requested =
+                driving_itself ? state.autonomy.command(kAutonomyMaxAge) : teleop.drive(intent);
             const proto::DriveCommand allowed = gated(requested, options, state);
             const bool blocked_now = allowed.direction != requested.direction;
             if (blocked_now != gate_blocking) {
@@ -167,7 +215,7 @@ void runControlLoop(const RobotOptions& options, RobotState& state, VideoTarget&
                 state.abort();
                 break;
             }
-            if (teleop.accept(intent)) {
+            if (teleop.accept(intent) && !driving_itself) {
                 const WheelPower wheels = driveWheelPower(requested);
                 std::printf("[cmd] %s speed=%.2f  R:%d%%|L:%d%%  pitch=%+.3f yaw=%+.3f\n",
                             directionName(requested.direction), requested.speed,
@@ -175,20 +223,26 @@ void runControlLoop(const RobotOptions& options, RobotState& state, VideoTarget&
             }
         }
 
-        // Also stop on malformed input, timeout, peer loss and server shutdown.
-        // Attempt both releases even if either device reports an error.
+        // The operator is gone. Release the camera either way, but only stop the
+        // wheels if the operator was the one driving them: in autonomy the robot
+        // is meant to carry on without a controller, and stopping here would
+        // fight the explorer for the UART.
         state.clearAppliedCamera();
-        const bool drive_stopped = drive.stop();
+        const bool still_autonomous = state.mode.load() == ControlMode::Explore;
+        const bool drive_stopped = still_autonomous || drive.stop();
         const auto stopped_at = net::Clock::now();
         video_target.clearPeer();
         const bool servos_released = servos.release();
         if (!drive_stopped || !servos_released) state.abort();
-        std::printf("[cmd] control disconnected: %s\n", link.peer().c_str());
+        std::printf("[cmd] control disconnected: %s%s\n", link.peer().c_str(),
+                    still_autonomous ? " (still exploring)" : "");
 
-        // Arm only once after a real driving session. Startup, invalid input,
-        // silent reconnects, device failures and shutdown stay stop-only.
-        if (options.drive_uart.enabled && connection_lost && teleop.everCommanded() &&
-            state.running.load()) {
+        // Arm only once after a real driving session, and never in autonomy --
+        // the manoeuvre would back the robot into whatever the explorer was
+        // steering around. Startup, invalid input, silent reconnects, device
+        // failures and shutdown stay stop-only.
+        if (!still_autonomous && options.drive_uart.enabled && connection_lost &&
+            teleop.everCommanded() && state.running.load()) {
             recovery.arm(stopped_at);
             std::printf("[cmd] disconnect recovery: STOP; waiting %lld ms before reverse\n",
                         static_cast<long long>(DisconnectRecovery::kPause.count()));
@@ -197,7 +251,7 @@ void runControlLoop(const RobotOptions& options, RobotState& state, VideoTarget&
     }
 
     // Also release outputs if shutdown or an accept/UART error interrupts the
-    // reverse pulse.
+    // reverse pulse. This one is unconditional: the robot is coming down.
     state.clearAppliedCamera();
     const bool drive_stopped = drive.stop();
     const bool servos_released = servos.release();

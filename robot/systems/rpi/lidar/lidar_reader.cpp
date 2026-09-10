@@ -10,6 +10,7 @@
 
 #include "systems/rpi/lidar/lidar_reader.h"
 #include "systems/rpi/lidar/lidar_distances.h"
+#include "systems/rpi/lidar/scan.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -56,6 +57,12 @@ constexpr bool kMirrorAngle = false;
 // echo at all, so every sector always carries a number.
 constexpr float kMinValidMm = 20.0f;
 constexpr float kMaxRangeMm = 500.0f;
+
+// SLAM needs the opposite of the sector clamp above: everything the device can
+// actually see. At 500 mm no map would ever form -- the robot would be walking
+// around inside a half-metre bubble. The STL-19P is specified to 12 m; readings
+// past that are noise, not walls.
+constexpr float kScanMaxRangeMm = 12000.0f;
 
 // How long to wait for the port to name itself / for the first scan.
 constexpr int64_t kCommTimeoutMs = 2000;
@@ -176,6 +183,25 @@ LidarDriver* openLidar(std::string& opened_port) {
 //  A zone with no echo within range reads as kMaxRangeMm rather than NaN: the
 //  reading is real, it just says "nothing closer than half a metre".
 // ---------------------------------------------------------------------------
+// The same revolution as readDistances(), kept whole and turned into Cartesian
+// points in the robot frame. The device measures angles clockwise from the nose,
+// so y is negated: the rest of the autonomy code uses x forward, y left and
+// counter-clockwise angles, and the conversion belongs here, once, rather than
+// inside every trig call in SLAM.
+LaserScan buildScan(const ldlidar::Points2D& scan) {
+    LaserScan out;
+    out.points.reserve(scan.size());
+    for (const ldlidar::PointData& point : scan) {
+        const float millimetres = static_cast<float>(point.distance);
+        if (millimetres < kMinValidMm || millimetres > kScanMaxRangeMm) continue;
+        const float radians = toRobotAngle(point.angle) * 3.14159265358979f / 180.0f;
+        const float metres = millimetres / 1000.0f;
+        out.points.push_back({metres * std::cos(radians), -metres * std::sin(radians)});
+    }
+    out.stamp = std::chrono::steady_clock::now();
+    return out;
+}
+
 LidarDistances readDistances(const ldlidar::Points2D& scan) {
     std::array<float, proto::SECTOR_COUNT> nearest;
     nearest.fill(kMaxRangeMm);
@@ -217,11 +243,70 @@ LidarDistances simulatedDistances(float phase) {
     return distances;
 }
 
+// ---------------------------------------------------------------------------
+//  Simulated room, for --lidar-source sim.
+//
+//  Exists so the whole autonomy path -- SLAM, the explorer, the map channel and
+//  the operator display -- can be run and watched on a desktop with no robot,
+//  no lidar and no serial port. It is a debugging aid and nothing more: the
+//  robot only turns on the spot here, so it exercises the pipeline, not the
+//  driving. The room has a doorway on purpose, otherwise it would be sealed and
+//  the explorer would correctly report that there is nowhere left to go.
+// ---------------------------------------------------------------------------
+struct SimSegment {
+    float ax, ay, bx, by;
+};
+
+const SimSegment kSimRoom[] = {
+    {-2.5f, -2.0f, 2.5f, -2.0f},  {2.5f, -2.0f, 2.5f, 2.0f},
+    {2.5f, 2.0f, 0.6f, 2.0f},     // wall stops short: doorway from 0.6 to -0.6
+    {-0.6f, 2.0f, -2.5f, 2.0f},   {-2.5f, 2.0f, -2.5f, -2.0f},
+    {1.0f, 0.2f, 1.4f, 0.2f},     {1.4f, 0.2f, 1.4f, 0.6f},
+    {1.4f, 0.6f, 1.0f, 0.6f},     {1.0f, 0.6f, 1.0f, 0.2f},
+};
+
+float simCastRay(float ox, float oy, float angle) {
+    const float dx = std::cos(angle);
+    const float dy = std::sin(angle);
+    float nearest = -1.0f;
+    for (const SimSegment& wall : kSimRoom) {
+        const float ex = wall.bx - wall.ax;
+        const float ey = wall.by - wall.ay;
+        const float denominator = dx * ey - dy * ex;
+        if (std::fabs(denominator) < 1e-9f) continue;
+        const float t = ((wall.ax - ox) * ey - (wall.ay - oy) * ex) / denominator;
+        const float u = ((wall.ax - ox) * dy - (wall.ay - oy) * dx) / denominator;
+        if (t <= 0.0f || u < 0.0f || u > 1.0f) continue;
+        if (nearest < 0.0f || t < nearest) nearest = t;
+    }
+    return nearest;
+}
+
+LaserScan simulatedScan(float heading) {
+    LaserScan scan;
+    scan.points.reserve(360);
+    for (int degree = 0; degree < 360; ++degree) {
+        const float bearing = static_cast<float>(degree) * 3.14159265358979f / 180.0f;
+        const float range = simCastRay(0.0f, 0.0f, heading + bearing);
+        if (range <= 0.0f || range > kScanMaxRangeMm / 1000.0f) continue;
+        scan.points.push_back({range * std::cos(bearing), range * std::sin(bearing)});
+    }
+    scan.stamp = std::chrono::steady_clock::now();
+    return scan;
+}
+
 void runSimulated(const RobotOptions& options, RobotState& state) {
     float phase = 0.0f;
+    float heading = 0.0f;
     auto next = net::Clock::now();
     while (state.running.load()) {
         state.obstacles.update(simulatedDistances(phase), options.lidar.thresholds);
+        // The scan comes from the virtual room, not from the sector sweep above:
+        // those placeholder distances are a display test and would make no sense
+        // as a map.
+        state.scans.publish(simulatedScan(heading));
+        heading += 0.02f;
+        if (heading > 6.2831853f) heading -= 6.2831853f;
 
         phase += 0.06f;
         if (phase > 6.2831853f) phase -= 6.2831853f;
@@ -285,6 +370,9 @@ void runLidarReader(const RobotOptions& options, RobotState& state) {
         if (driver->GetLaserScanData(scan, read_timeout_ms) == ldlidar::LidarStatus::NORMAL) {
             read_failures = 0;
             state.obstacles.update(readDistances(scan), options.lidar.thresholds);
+            // Second, independent product: the full revolution for SLAM. The
+            // verdicts above are unaffected by anything that happens to it.
+            state.scans.publish(buildScan(scan));
         } else if (++read_failures >= kMaxReadFailures) {
             // Unplugged, unpowered or wedged. Drop the handle and look for it
             // again; the last sample ages out to Unknown on its own.

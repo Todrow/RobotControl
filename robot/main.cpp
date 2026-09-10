@@ -13,11 +13,14 @@
 
 #include <gst/gst.h>
 
+#include "control/auto/explore.h"
+#include "control/auto/slam.h"
 #include "control_loop.h"
 #include "options.h"
 #include "state.h"
 #include "systems/rpi/camera/camera_stream.h"
 #include "systems/rpi/lidar/lidar_reader.h"
+#include "systems/rpi/link/map_link.h"
 #include "systems/rpi/link/telemetry_link.h"
 #include "systems/rpi/logging/logger.h"
 
@@ -112,10 +115,11 @@ int main(int argc, char* argv[]) {
 
     RobotState state;
     VideoTarget video_target(options.video_host);
-    std::printf("robot: cmd=%u tlm=%u video=%u (Ctrl+C to quit)\n",
+    std::printf("robot: cmd=%u tlm=%u video=%u map=%u (Ctrl+C to quit)\n",
                 static_cast<unsigned>(options.command_port),
                 static_cast<unsigned>(options.telemetry_port),
-                static_cast<unsigned>(options.video_port));
+                static_cast<unsigned>(options.video_port),
+                static_cast<unsigned>(options.map_port));
     std::printf("Lidar: %s. Red sectors %s drive commands toward them.\n",
                 options.lidar.source == LidarSource::Device ? "STL-19P device"
                 : options.lidar.source == LidarSource::Simulated ? "simulated (PLACEHOLDER distances)"
@@ -134,6 +138,9 @@ int main(int argc, char* argv[]) {
     std::thread telemetry;
     std::thread video;
     std::thread lidar;
+    std::thread slam;
+    std::thread explorer;
+    std::thread mapping;
     try {
         control = std::thread([&] {
             runSafely("cmd", state, [&] { runControlLoop(options, state, video_target); });
@@ -147,6 +154,15 @@ int main(int argc, char* argv[]) {
         lidar = std::thread([&] {
             runSafely("lidar", state, [&] { runLidarReader(options, state); });
         });
+        slam = std::thread([&] {
+            runSafely("slam", state, [&] { runSlam(options, state); });
+        });
+        explorer = std::thread([&] {
+            runSafely("explore", state, [&] { runExplorer(options, state); });
+        });
+        mapping = std::thread([&] {
+            runSafely("map", state, [&] { runMapLink(options, state); });
+        });
         while (state.running.load() && !stop_requested)
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
     } catch (const std::exception& exception) {
@@ -158,6 +174,9 @@ int main(int argc, char* argv[]) {
     if (telemetry.joinable()) telemetry.join();
     if (video.joinable()) video.join();
     if (lidar.joinable()) lidar.join();
+    if (slam.joinable()) slam.join();
+    if (explorer.joinable()) explorer.join();
+    if (mapping.joinable()) mapping.join();
 
     gst_deinit();
 #ifdef _WIN32

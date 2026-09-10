@@ -32,12 +32,14 @@ if(BUILD_CONTROL)
         control/net/connection_manager.cpp
         control/net/command_sender.cpp
         control/net/telemetry_receiver.cpp
+        control/net/map_client.cpp
         control/state/desired_state_slot.cpp
         control/input/input_controller.cpp
         control/video/video_receiver.cpp
         control/ui/main_window.cpp
         control/ui/hud_overlay.cpp
         control/ui/yaw_indicator.cpp
+        control/ui/map_view.cpp
     )
     set_target_properties(control PROPERTIES AUTOMOC ON WIN32_EXECUTABLE TRUE)
     target_compile_definitions(control PRIVATE NOMINMAX)

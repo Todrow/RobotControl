@@ -14,6 +14,7 @@
 #include <algorithm>
 
 #include "hud_overlay.h"
+#include "map_view.h"
 #include "yaw_indicator.h"
 
 namespace {
@@ -71,6 +72,9 @@ MainWindow::MainWindow(QWidget* parent)
     yaw_view_->setAttribute(Qt::WA_NativeWindow);
     yaw_view_->setDesiredYaw(slot_.get().camera.yaw);
     yaw_view_->show();
+    map_view_ = new MapView(this);
+    map_view_->setAttribute(Qt::WA_NativeWindow);
+    map_view_->hide();  // off until the operator asks for it
 
     connect(&conn_, &ConnectionManager::commandStatusChanged, this, &MainWindow::onCommandStatus,
             Qt::QueuedConnection);
@@ -78,6 +82,10 @@ MainWindow::MainWindow(QWidget* parent)
             &MainWindow::onTelemetryStatus, Qt::QueuedConnection);
     connect(conn_.telemetry(), &TelemetryReceiver::telemetryReceived, this,
             &MainWindow::onTelemetry, Qt::QueuedConnection);
+    connect(&map_client_, &MapClient::mapReceived, this, &MainWindow::onMapFrame,
+            Qt::QueuedConnection);
+    connect(&map_client_, &MapClient::statusChanged, this, &MainWindow::onMapStatus,
+            Qt::QueuedConnection);
 
     tick_timer_ = new QTimer(this);
     connect(tick_timer_, &QTimer::timeout, this, &MainWindow::tick);
@@ -89,6 +97,7 @@ MainWindow::MainWindow(QWidget* parent)
 MainWindow::~MainWindow() {
     video_.stop();
     conn_.stop();
+    map_client_.stop();
 }
 
 void MainWindow::buildConnectBar() {
@@ -111,8 +120,16 @@ void MainWindow::buildConnectBar() {
     telemetry_port_ = makePort(proto::TELEMETRY_PORT);
     video_port_ = makePort(proto::VIDEO_PORT);
 
+    map_port_ = makePort(mapproto::MAP_PORT);
+
     connect_button_ = new QPushButton(QStringLiteral("Connect"), bar_);
     connect(connect_button_, &QPushButton::clicked, this, &MainWindow::onConnectClicked);
+    explore_button_ = new QPushButton(QStringLiteral("Explore"), bar_);
+    explore_button_->setEnabled(false);
+    connect(explore_button_, &QPushButton::clicked, this, &MainWindow::onExploreClicked);
+    map_button_ = new QPushButton(QStringLiteral("Map"), bar_);
+    map_button_->setCheckable(true);
+    connect(map_button_, &QPushButton::clicked, this, &MainWindow::onMapToggled);
 
     auto* layout = new QHBoxLayout(bar_);
     layout->setContentsMargins(10, 6, 10, 6);
@@ -125,7 +142,11 @@ void MainWindow::buildConnectBar() {
     layout->addWidget(telemetry_port_);
     layout->addWidget(new QLabel(QStringLiteral("video"), bar_));
     layout->addWidget(video_port_);
+    layout->addWidget(new QLabel(QStringLiteral("map"), bar_));
+    layout->addWidget(map_port_);
     layout->addWidget(connect_button_);
+    layout->addWidget(explore_button_);
+    layout->addWidget(map_button_);
     bar_->adjustSize();
     bar_->show();
 }
@@ -180,6 +201,14 @@ void MainWindow::layoutOverlays() {
                            area.top() + (area.height() - power_panel_->height()) / 2);
         power_panel_->raise();
     }
+    if (map_view_) {
+        const int width = area.width() / 2;
+        const int height = area.height() / 2;
+        map_view_->resize(width, height);
+        map_view_->move(area.left() + kMargin, area.top() + (area.height() - height) / 2);
+        map_view_->raise();
+        map_view_->update();
+    }
     if (hud_) {
         hud_->move(area.left() + kMargin, area.bottom() - hud_->height() - kMargin);
         hud_->raise();
@@ -215,10 +244,58 @@ void MainWindow::showEvent(QShowEvent* event) {
     layoutOverlays();  // without this the overlays sit unpositioned until the first resize
 }
 
+void MainWindow::updateExploreButton() {
+    if (!explore_button_) return;
+    explore_button_->setEnabled(map_link_up_);
+    explore_button_->setText(exploring_ ? QStringLiteral("Stop") : QStringLiteral("Explore"));
+}
+
+void MainWindow::onExploreClicked() {
+    // Ask for the opposite of what the robot says it is doing. The button never
+    // holds a state of its own: the robot's next frame is what flips the label,
+    // so a request that does not take effect cannot leave the two disagreeing.
+    map_client_.requestExplore(!exploring_);
+    // Showing the map when autonomy starts saves the operator a click at exactly
+    // the moment they want to watch where the robot goes.
+    if (!exploring_ && map_button_ && !map_button_->isChecked()) {
+        map_button_->setChecked(true);
+        onMapToggled();
+    }
+}
+
+void MainWindow::onMapToggled() {
+    if (!map_view_ || !map_button_) return;
+    map_view_->setVisible(map_button_->isChecked());
+    if (map_button_->isChecked()) layoutOverlays();
+    video_widget_->setFocus();  // keep the keys driving the robot
+}
+
+void MainWindow::onMapFrame(MapFrame frame) {
+    exploring_ = frame.exploring;
+    if (map_view_) {
+        map_view_->setExploring(frame.exploring);
+        map_view_->setMap(frame);
+    }
+    updateExploreButton();
+}
+
+void MainWindow::onMapStatus(bool connected) {
+    map_link_up_ = connected;
+    if (!connected) {
+        exploring_ = false;
+        if (map_view_) map_view_->clearMap();
+    }
+    if (map_view_) map_view_->setLinkStatus(connected);
+    updateExploreButton();
+}
+
 void MainWindow::onConnectClicked() {
     if (conn_.running()) {
         video_.stop();
         conn_.stop();
+        map_client_.stop();
+        onMapStatus(false);
+        map_view_->clearMap();
         setMouseCaptured(false);
         connected_at_ = -1;
         last_telemetry_ = -1;
@@ -233,6 +310,7 @@ void MainWindow::onConnectClicked() {
     conn_.start(host_edit_->text().trimmed(), static_cast<uint16_t>(command_port_->value()),
                 static_cast<uint16_t>(telemetry_port_->value()));
     video_.start(static_cast<quint16>(video_port_->value()), video_widget_->winId());
+    map_client_.start(host_edit_->text().trimmed(), static_cast<uint16_t>(map_port_->value()));
     updateVideoRect();
     connected_at_ = uptime_.elapsed();
     arrivals_.clear();

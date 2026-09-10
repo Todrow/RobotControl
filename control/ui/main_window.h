@@ -6,10 +6,12 @@
 
 #include "../input/input_controller.h"
 #include "../net/connection_manager.h"
+#include "../net/map_client.h"
 #include "../state/desired_state_slot.h"
 #include "../video/video_receiver.h"
 
 class HudOverlay;
+class MapView;
 class YawIndicator;
 class QDial;
 class QLabel;
@@ -40,10 +42,15 @@ private slots:
     void onTelemetry(proto::Telemetry telemetry);
     void onCommandStatus(bool connected);
     void onTelemetryStatus(bool connected);
+    void onExploreClicked();
+    void onMapToggled();
+    void onMapFrame(MapFrame frame);
+    void onMapStatus(bool connected);
     void tick();  // telemetry staleness + link quality
 
 private:
     void buildConnectBar();
+    void updateExploreButton();
     void buildPowerPanel();
     void layoutOverlays();
     void updateVideoRect();
@@ -56,6 +63,7 @@ private:
     InputController input_;
     ConnectionManager conn_;
     VideoReceiver video_;
+    MapClient map_client_;
 
     QWidget* video_widget_ = nullptr;
     QWidget* bar_ = nullptr;
@@ -63,12 +71,16 @@ private:
     QDial* power_dial_ = nullptr;
     QLabel* power_label_ = nullptr;
     HudOverlay* hud_ = nullptr;
+    MapView* map_view_ = nullptr;
     YawIndicator* yaw_view_ = nullptr;
     QLineEdit* host_edit_ = nullptr;
     QSpinBox* command_port_ = nullptr;
     QSpinBox* telemetry_port_ = nullptr;
     QSpinBox* video_port_ = nullptr;
+    QSpinBox* map_port_ = nullptr;
     QPushButton* connect_button_ = nullptr;
+    QPushButton* explore_button_ = nullptr;
+    QPushButton* map_button_ = nullptr;
     QTimer* tick_timer_ = nullptr;
 
     QElapsedTimer uptime_;
@@ -78,4 +90,7 @@ private:
     bool command_up_ = false;
     bool telemetry_up_ = false;
     bool mouse_captured_ = false;
+    // What the ROBOT reports it is doing, not what the button last asked for.
+    bool exploring_ = false;
+    bool map_link_up_ = false;
 };

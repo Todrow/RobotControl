@@ -14,6 +14,7 @@ void printUsage(const char* executable) {
         "  --command-port PORT    TCP command listener (default 5001)\n"
         "  --telemetry-port PORT  TCP system telemetry listener (default 5002)\n"
         "  --video-port PORT      RTP/H264 UDP destination port (default 5003)\n"
+        "  --map-port PORT        TCP map + autonomy channel (default 5004)\n"
         "  --video-host IPV4      Fixed Windows receiver; default: active command peer\n"
         "  --video-source SOURCE camera | test | none (default camera)\n"
         "  --camera INDEX        Camera index from rpicam-hello (0..255; default 0)\n"
@@ -30,6 +31,10 @@ void printUsage(const char* executable) {
         "  --obstacle-red MM     Red below this distance, 10..10000 (default 100)\n"
         "  --obstacle-yellow MM  Yellow below this distance, 10..10000 (default 150)\n"
         "  --obstacle-no-enforce Report Red sectors only; do not block drive commands\n"
+        "  --no-slam             Do not build a map; disables exploring\n"
+        "  --slam-min-score PCT  Match below this percent is rejected, 5..90 (default 22)\n"
+        "  --explore-speed PCT   Autonomous drive speed, 5..100 (default 35)\n"
+        "  --robot-radius CM     Hull half-width for planning, 5..100 (default 20)\n"
         "  --servos              Enable Linux hardware PWM camera servos\n"
         "  --servo-pwm-chip PATH  /sys/class/pwm/pwmchipN; default: auto-detect Pi 4 PWM0\n"
         "  --pitch-channel N     PWM channel 0 or 1 (default 0: BCM12, physical pin 32)\n"
@@ -85,6 +90,10 @@ bool parseOptions(int argc, char* argv[], RobotOptions& options) {
             options.lidar.enforce = false;
             continue;
         }
+        if (name == "--no-slam") {
+            options.slam.enabled = false;
+            continue;
+        }
         if (name == "--pitch-invert" || name == "--yaw-invert") {
             (name == "--pitch-invert" ? options.servos.pitch : options.servos.yaw).inverted = true;
             continue;
@@ -95,11 +104,13 @@ bool parseOptions(int argc, char* argv[], RobotOptions& options) {
         }
         const std::string value = argv[++i];
         int number = 0;
-        if (name == "--command-port" || name == "--telemetry-port" || name == "--video-port") {
+        if (name == "--command-port" || name == "--telemetry-port" || name == "--video-port" ||
+            name == "--map-port") {
             if (!integerOption(name, value, 1, 65535, number)) return false;
             const auto port = static_cast<uint16_t>(number);
             if (name == "--command-port") options.command_port = port;
             else if (name == "--telemetry-port") options.telemetry_port = port;
+            else if (name == "--map-port") options.map_port = port;
             else options.video_port = port;
         } else if (name == "--video-host") {
             if (!net::isIPv4(value)) {
@@ -132,6 +143,24 @@ bool parseOptions(int argc, char* argv[], RobotOptions& options) {
             auto& threshold = name == "--obstacle-red" ? options.lidar.thresholds.red_mm
                                                        : options.lidar.thresholds.yellow_mm;
             threshold = static_cast<float>(number);
+        } else if (name == "--slam-min-score" || name == "--explore-speed" ||
+                   name == "--robot-radius") {
+            // Taken as whole percent / centimetres so the existing integer
+            // parser does the range checking; adding a float parser for three
+            // options would be a second way to get bounds wrong.
+            if (!integerOption(name, value, 5, 100, number)) return false;
+            const float fraction = static_cast<float>(number) / 100.0f;
+            if (name == "--slam-min-score") {
+                if (number > 90) {
+                    std::fprintf(stderr, "--slam-min-score must be 5..90\n");
+                    return false;
+                }
+                options.slam.min_score = fraction;
+            } else if (name == "--explore-speed") {
+                options.explore.speed = fraction;
+            } else {
+                options.explore.robot_radius_m = fraction;
+            }
         } else if (name == "--camera") {
             if (!integerOption(name, value, 0, 255, options.camera_index)) return false;
         } else if (name == "--width") {
@@ -179,8 +208,10 @@ bool parseOptions(int argc, char* argv[], RobotOptions& options) {
             return false;
         }
     }
-    if (options.command_port == options.telemetry_port) {
-        std::fprintf(stderr, "Command and telemetry TCP ports must be different\n");
+    if (options.command_port == options.telemetry_port ||
+        options.command_port == options.map_port ||
+        options.telemetry_port == options.map_port) {
+        std::fprintf(stderr, "Command, telemetry and map TCP ports must all be different\n");
         return false;
     }
     if (options.width % 2 != 0 || options.height % 2 != 0) {
